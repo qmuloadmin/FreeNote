@@ -24,16 +24,22 @@ class Section(QtWidgets.QTabWidget, SaveMixin):
             margin-top:-3px;
         }}
         """.format(PAGE_BG, PAGE_ITEM_MENU_BG))
+        self._append_placeholder()
         for page in pages:
             self._add_page(page)
 
-        self._append_placeholder()
+        self.tabBar().tabBarClicked.connect(self._check_handle_new_section)
         self._connect_signals()
 
     def _append_placeholder(self):
-        placeholder = PlaceholderPage(self.transform_page)
-        index = self.addTab(placeholder, "page-New Page")
-        self.tabBar().tabButton(index, self.tabBar().RightSide).setHidden(True)
+        self.tabBar().addTab("New Page")
+
+    def _check_handle_new_section(self, index: str):
+        if index == len(self.pages):
+            id = self._next_id()
+            page = Page(id)
+            i = self._add_page(page)
+            self.setCurrentIndex(i)
 
     def _remove_page(self, index: int):
         self.removeTab(index)
@@ -49,6 +55,7 @@ class Section(QtWidgets.QTabWidget, SaveMixin):
         return "{}-{}".format(prefix, i)
 
     def _add_page(self, page: Page) -> int:
+        self.tabBar().removeTab(len(self.pages))
         page.section = self
         scroll = QtWidgets.QScrollArea(self)
         scroll.setWidget(page)
@@ -58,6 +65,7 @@ class Section(QtWidgets.QTabWidget, SaveMixin):
         pos.setWidth(self.width())
         pos.setHeight(self.height())
         page.setGeometry(pos)
+        self._append_placeholder()
         return self.addTab(scroll, page.id)
 
     def transform_page(self, event: QtGui.QMouseEvent):

@@ -2,8 +2,8 @@ from PySide2.QtWidgets import QTabWidget, QWidget
 from section import Section
 from yaml import load, dump
 from utilities.toaster import ToasterMixin
+from string import ascii_uppercase
 from utilities.save_mixin import just_loaded
-from os.path import join
 
 
 class Notebook(QTabWidget, ToasterMixin):
@@ -51,13 +51,13 @@ class Notebook(QTabWidget, ToasterMixin):
         id = id[8:]
         super().addTab(widget, id)
 
-    def _next_id(self, prefix="section", start="1"):
+    def _next_id(self, prefix="section", start="A"):
         if "{}-{}".format(prefix, start) not in self.ids:
             return "{}-{}".format(prefix, start)
         i = 1
-        while "{}-{}".format(prefix, i) in self.ids:
+        while "{}-{}".format(prefix, ascii_uppercase[i]) in self.ids:
             i += 1
-        return "{}-{}".format(prefix, i)
+        return "{}-{}".format(prefix, ascii_uppercase[i])
 
     @classmethod
     def from_file(cls, filename: str):

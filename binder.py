@@ -41,6 +41,11 @@ class Binder(QTabWidget):
             self._load_workspace()
 
         self.setTabPosition(self.West)
+        self.setStyleSheet("""
+        QTabWidget::tab-bar {
+            top: 0;
+        }
+        """)
 
     def _set_workspace_from_dialog(self, dir: str):
         Settings.workspace_dir = dir
