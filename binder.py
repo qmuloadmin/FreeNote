@@ -52,6 +52,10 @@ class Binder(QTabWidget):
             if each.endswith(".fnbook"):
                 notebook = Notebook.from_file(path.join(Settings.workspace_dir, each))
                 self._add_notebook(notebook)
+        if len(self.notebooks) == 0:
+            # Append a starting notebook, for now, since there's no way to add notebooks yet
+            notebook = Notebook("My Notebook")
+            self._add_notebook(notebook)
 
     def _add_notebook(self, book: Notebook):
         self.addTab(book, book.id)
