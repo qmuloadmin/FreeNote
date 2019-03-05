@@ -37,3 +37,14 @@ Save files may not work from version to version.
 
 Please do. I need a ton of help to make this a good, stable, usable program. 
 
+### Current State
+
+It works, but likely will have many bugs. Icons only show up on Linux, so the text format toolbar is difficult to 
+use on Windows and Mac. My current goal is mostly to fix bugs before I add any substantial new features.
+
+Currently, you can drag images from your local filesystem, but not from a web browser, for instance (yet).
+You can click anywhere and start typing, format the text, move any item around on the page, one at a time. 
+Bulk selection and dragging will be added later.
+
+Here is a screenshot of the apearance, as of now, on Linux:
+![Linux Screenshot](screenshots/freenote_ss.png)
