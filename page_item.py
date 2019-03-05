@@ -19,13 +19,13 @@ class PageItem(SaveMixin, QtWidgets.QWidget):
     def __init__(self, id: str, pos: QtCore.QRect, img="", height_from_width=False):
         super().__init__()
         self.id = id
-        self.lo = QtWidgets.QVBoxLayout()
-        self.lo.setMargin(0)
-        self.header = PageItemHeader(id)
-        self.header.setAlignment(QtCore.Qt.AlignCenter)
+        self._lo = QtWidgets.QVBoxLayout()
+        self._lo.setMargin(0)
+        self._header = PageItemHeader(id)
+        self._header.setAlignment(QtCore.Qt.AlignCenter)
         # if img was provided, don't set the content as text, but as a label
         if img != "":
-            self.contents = QtWidgets.QLabel()
+            self._contents = QtWidgets.QLabel()
             data = urlopen(img).read()
             orig_pixmap = QtGui.QPixmap()
             orig_pixmap.loadFromData(data)
@@ -34,29 +34,37 @@ class PageItem(SaveMixin, QtWidgets.QWidget):
             if height_from_width:
                 # Make the widget big enough to contain the image
                 pos.setHeight(pixmap.height() + self._non_content_height())
-            self.contents.setPixmap(pixmap)
-            self.resize_debouncer = Debouncer(timeout=0.25)
-            self.resize_debouncer.action = self._resize_image
-            self.type = "image"
+            self._contents.setPixmap(pixmap)
+            self._resize_debouncer = Debouncer(timeout=0.25)
+            self._resize_debouncer.action = self._resize_image
+            self._type = "image"
         else:
-            self.contents = PageTextEdit()
-            self.type = "text"
-        self.resizeArrow = PageItemResizeLabel()
-        self.resizeArrow.setAlignment(QtCore.Qt.AlignRight)
-        self.lo.addWidget(self.header)
-        self.lo.addWidget(self.contents)
-        self.lo.addWidget(self.resizeArrow)
-        self.lo.setSpacing(0)
-        self.setLayout(self.lo)
+            self._contents = PageTextEdit()
+            self._html_contents = ""  # stores item contents in a thread-safe way for saving
+            self._contents.textChanged.connect(self._set_html_contents)
+            self._type = "text"
+        self._resizeArrow = PageItemResizeLabel()
+        self._resizeArrow.setAlignment(QtCore.Qt.AlignRight)
+        self._lo.addWidget(self._header)
+        self._lo.addWidget(self._contents)
+        self._lo.addWidget(self._resizeArrow)
+        self._lo.setSpacing(0)
+        self.setLayout(self._lo)
         self.setGeometry(pos)
         self._connect_signals()
+
+    def _set_html_contents(self):
+        """ stores the contents of the inner text edit widget in the main thread """
+        # this means all text is duplicated in memory. Should find a safer way to save that can access
+        # the toHTML() method safely without causing whatever races condition causes it to crash
+        self._html_contents = self._contents.toHtml()
 
     def _non_content_height(self) -> int:
         """ The vertical space occupied by things other than the content (header, footer) """
         return 30  # TODO make it calculated, not hardcoded
 
     def setFocus(self):
-        self.contents.setFocus()
+        self._contents.setFocus()
 
     def mouseMoveEvent(self, ev: QtGui.QMouseEvent):
         if not self.hasMouseTracking():
@@ -74,8 +82,8 @@ class PageItem(SaveMixin, QtWidgets.QWidget):
 
     def setGeometry(self, pos: QtCore.QRect):
         super().setGeometry(pos)
-        if self.type == "image":
-            self.resize_debouncer.start()
+        if self._type == "image":
+            self._resize_debouncer.start()
         if self.parent() is not None:
             self.parent().edge_check(self)
 
@@ -83,7 +91,7 @@ class PageItem(SaveMixin, QtWidgets.QWidget):
         width = self.geometry().width()
         pixmap = self.orig_pixmap
         pixmap = pixmap.scaledToWidth(width)
-        self.contents.setPixmap(pixmap)
+        self._contents.setPixmap(pixmap)
 
     @classmethod
     def unmarshall(cls, id: str, data: dict):
@@ -100,7 +108,7 @@ class PageItem(SaveMixin, QtWidgets.QWidget):
             item = cls(id, pos, img=data['contents']['url'])
         else:
             item = cls(id, pos)
-            item.contents.setHtml(data['contents']['value'])
+            item._contents.setHtml(data['contents']['value'])
         return item
 
     def marshal(self, asset_dir=".") -> dict:
@@ -108,11 +116,11 @@ class PageItem(SaveMixin, QtWidgets.QWidget):
         # TODO should probably make this a formal type
         geometry = (self.geometry().x(), self.geometry().y(), self.geometry().width(), self.geometry().height())
         contents = {
-            "type": self.type,
+            "type": self._type,
         }
-        if self.type == "text":
-            contents["value"] = self.contents.toHtml()
-        elif self.type == "image":
+        if self._type == "text":
+            contents["value"] = self._html_contents
+        elif self._type == "image":
             # Write assets to a file, then generate a url from it
             # TODO create better way of managing assets
             asset_file = join(asset_dir, "{}-{}-{}.fna".format(self.parent().section.id, self.parent().id, self.id))

@@ -3,7 +3,6 @@ from section import Section
 from yaml import load, dump
 from utilities.toaster import ToasterMixin
 from string import ascii_uppercase
-from utilities.save_mixin import just_loaded
 
 
 class Notebook(QTabWidget, ToasterMixin):
@@ -61,8 +60,6 @@ class Notebook(QTabWidget, ToasterMixin):
 
     @classmethod
     def from_file(cls, filename: str):
-        global just_loaded
-        just_loaded = True
         with open(filename) as f:
             data = load(f)
         sections = []

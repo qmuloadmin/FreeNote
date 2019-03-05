@@ -3,8 +3,6 @@
 from utilities.debounce import g_save_debouncer
 from PySide2 import QtCore
 
-just_loaded = False
-
 
 class SaveMixin:
 
