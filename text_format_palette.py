@@ -127,24 +127,13 @@ class TextFormatPalette(QWidget):
     def _feedback_font_size(self, size: int):
         self.size_input.setText(str(size))
 
-    def _spawn_color_dialog(self, color: QColor) -> QColorDialog:
-        cd = QColorDialog(self.current_bg_color)
-        cd.setParent(self.parent())
-        cd.show()
-        return cd
-
-    def _select_bg_color(self):
-        cd = self._spawn_color_dialog(self.current_bg_color)
-        cd.colorSelected.connect(self._selected_bg_color)
-
-    def _selected_bg_color(self, color: QColor):
-        self.current_bg_color = color
-        self.backgnd_button.setStyleSheet("background-color: {}".format(color.name()))
-
     def _select_fg_color(self):
-        cd = self._spawn_color_dialog(self.current_fg_color)
-        cd.colorSelected.connect(self._selected_fg_color)
-
-    def _selected_fg_color(self, color: QColor):
+        color = QColorDialog.getColor()
         self.current_fg_color = color
         self.foregnd_button.setStyleSheet("color: {}".format(color.name()))
+
+    def _select_bg_color(self):
+        color = QColorDialog.getColor()
+        self.current_bg_color = color
+        self.backgnd_button.setStyleSheet("background-color: {}".format(color.name()))
+    
