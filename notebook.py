@@ -1,6 +1,6 @@
 from PySide2.QtWidgets import QTabWidget, QWidget
 from section import Section
-from yaml import load, dump
+from oyaml import load, dump
 from utilities.toaster import ToasterMixin
 from string import ascii_uppercase
 

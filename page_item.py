@@ -16,11 +16,16 @@ class PageItem(SaveMixin, QtWidgets.QWidget):
      Set height_from_width when providing an image to scale the height of the entire widget from
      the width of the image. (Mostly useful when instantiating from a new image, as opposed to from a file) """
 
+    # raised and lowered indicate that the item has been brought to front or sent to back
+    raised = QtCore.Signal(int)
+    lowered = QtCore.Signal(int)
+
     def __init__(self, id: str, pos: QtCore.QRect, img="", height_from_width=False):
         super().__init__()
         self.id = id
         self._lo = QtWidgets.QVBoxLayout()
         self._lo.setMargin(0)
+        self.z_index = 0
         self._header = PageItemHeader(id)
         self._header.setAlignment(QtCore.Qt.AlignCenter)
         # if img was provided, don't set the content as text, but as a label
@@ -114,7 +119,12 @@ class PageItem(SaveMixin, QtWidgets.QWidget):
     def marshal(self, asset_dir=".") -> dict:
         """ marshal should return the content necessary to later restore this widget from a file """
         # TODO should probably make this a formal type
-        geometry = (self.geometry().x(), self.geometry().y(), self.geometry().width(), self.geometry().height())
+        geometry = (
+            self.geometry().x(),
+            self.geometry().y(),
+            self.geometry().width(),
+            self.geometry().height()
+        )
         contents = {
             "type": self._type,
         }
@@ -331,11 +341,17 @@ class PageItemHeader(PageItemSurround):
             close_option = QtWidgets.QAction("Remove", dialog)
             close_option.setStatusTip("Delete this text box and all its contents")
             close_option.triggered.connect(self._remove)
+            raise_option = QtWidgets.QAction("Bring To Front", dialog)
+            raise_option.triggered.connect(lambda: self.parent().raised.emit(self.parent().z_index))
+            lower_option = QtWidgets.QAction("Send To Back", dialog)
+            lower_option.triggered.connect(lambda: self.parent().lowered.emit(self.parent().z_index))
             cancel_option = QtWidgets.QAction("Cancel", dialog)
-            cancel_option.triggered.connect(lambda: dialog.deleteLater())
             dialog.addAction(close_option)
+            dialog.addAction(raise_option)
+            dialog.addAction(lower_option)
             dialog.addAction(cancel_option)
-            dialog.popup(ev.pos())
+            dialog.triggered.connect(lambda _: dialog.deleteLater())
+            dialog.exec_(ev.pos())
 
         ev.accept()
 

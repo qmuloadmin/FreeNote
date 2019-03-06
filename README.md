@@ -15,7 +15,8 @@ Save files may not work from version to version.
 ### Installing
 
 1. Install Python 3.6 or later
-2. Install PySide2 (pip install PySide2) and pyyaml
+2. Install PySide2 (pip install PySide2) and oyaml
+    - oyaml preserves Py 3.6+ dict ordering and is critical for some functionality to save properly
 3. Launch main.py
 
 ### Future Plans

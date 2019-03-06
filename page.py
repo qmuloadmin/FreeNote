@@ -26,6 +26,7 @@ class Page(QtWidgets.QWidget):
         self.id = id
         self.ids = set()
         self._section = None
+        # NOTE: order of items is SIGNIFICANT. Do not arbitrarily adjust it, without updating child item's z_index
         self.items = []
         # debouncing for resizing (shrinking) purposes
         self.size_debouncer = Debouncer(self._size_timer)
@@ -45,6 +46,20 @@ class Page(QtWidgets.QWidget):
 
     def _size_timer(self):
         return Timer(0.5, self._eval_resize)
+
+    def _raise_item(self, index):
+        """ Slot for listening to child item's raised signals. Handles reordering of the list of items """
+        item = self.items.pop(index)
+        self.items.append(item)
+        item.z_index = len(self.items) - 1
+        item.raise_()
+
+    def _lower_item(self, index):
+        """ Slot for listening to child item's lowered signals. Handles reordering of the list of items """
+        item = self.items.pop(index)
+        self.items.insert(0, item)
+        item.z_index = 0
+        item.lower()
 
     def _eval_resize(self):
         """ Called to re-evaluate what the right-most and bottom-most items are based on their geometries, and
@@ -125,6 +140,9 @@ class Page(QtWidgets.QWidget):
         item.setParent(self)
         item.show()
         item.setFocus()
+        item.z_index = len(self.items) - 1  # MUST start at zero for proper behavior of self._raise_item
+        item.raised.connect(self._raise_item)
+        item.lowered.connect(self._lower_item)
 
     def dropEvent(self, event: QtGui.QDropEvent):
         super().dropEvent(event)
@@ -133,8 +151,6 @@ class Page(QtWidgets.QWidget):
             pos.setX(int(event.pos().x()))
             pos.setY(int(event.pos().y()))
             pos.setWidth(200)  # TODO find a better way to set default width
-            print(event.pos().x())
-            print(event.pos().y())
             db = QtCore.QMimeDatabase()
             if "image" in db.mimeTypeForUrl(event.mimeData().urls()[0]).name():
                 # for some reason, images are not showing up as images. Not sure if this is due to testing env

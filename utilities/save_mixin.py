@@ -19,3 +19,8 @@ class SaveMixin:
             self.tabCloseRequested.connect(g_save_debouncer.start)
         except AttributeError:
             """ Do nothing """
+        try:
+            self.raised.connect(g_save_debouncer.start)
+            self.lowered.connect(g_save_debouncer.start)
+        except AttributeError:
+            """ Do nothing """
