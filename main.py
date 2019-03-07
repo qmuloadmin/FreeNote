@@ -21,7 +21,9 @@ class MainWindow(QWidget):
             else:
                 workspace = G_QSETTINGS.value("workspace/dir", "")
         Settings.workspace_dir = workspace
-        # Validate the workspace
+        Settings.asset_dir = G_QSETTINGS.value("workspace/assetDir")
+        if Settings.asset_dir is None:
+            Settings.asset_dir = Settings.workspace_dir
 
         self.lo = QVBoxLayout()
         self.format_bar = TextFormatPalette(self)

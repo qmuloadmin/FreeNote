@@ -6,8 +6,8 @@ from utilities.settings import Settings
 from text_format_palette import G_FORMAT_SIGNALLER
 from threading import Timer
 from urllib.request import urlopen
-from os.path import join
-from os import chdir
+from os.path import join, exists
+from os import remove, chdir, getcwd
 
 
 class PageItem(SaveMixin, QtWidgets.QWidget):
@@ -31,11 +31,22 @@ class PageItem(SaveMixin, QtWidgets.QWidget):
         # if img was provided, don't set the content as text, but as a label
         if img != "":
             self._contents = QtWidgets.QLabel()
+            # asset URLs, when they are local files, are relative paths, are relative, not absolute
+            # for portability reasons. When we are restoring from a saved state. So, we should
+            # set our working directory to the asset directory
+            # URLs for files dragged in should be absolute anyway and not affected.
+            old_wd = getcwd()
+            chdir(Settings.asset_dir)
             data = urlopen(img).read()
+            chdir(old_wd)
+
             orig_pixmap = QtGui.QPixmap()
             orig_pixmap.loadFromData(data)
             pixmap = orig_pixmap.scaledToWidth(pos.width())
+
+            # orig pixmap is an asset that gets saved to disk
             self.orig_pixmap = orig_pixmap
+
             if height_from_width:
                 # Make the widget big enough to contain the image
                 pos.setHeight(pixmap.height() + self._non_content_height())
@@ -48,6 +59,7 @@ class PageItem(SaveMixin, QtWidgets.QWidget):
             self._html_contents = ""  # stores item contents in a thread-safe way for saving
             self._contents.textChanged.connect(self._set_html_contents)
             self._type = "text"
+
         self._resizeArrow = PageItemResizeLabel()
         self._resizeArrow.setAlignment(QtCore.Qt.AlignRight)
         self._lo.addWidget(self._header)
@@ -100,9 +112,6 @@ class PageItem(SaveMixin, QtWidgets.QWidget):
 
     @classmethod
     def unmarshall(cls, id: str, data: dict):
-        chdir(Settings.workspace_dir)
-        if Settings.asset_dir != "":
-            chdir(Settings.asset_dir)
         pos = QtCore.QRect()
         geo = data["geometry"]
         pos.setX(geo[0])
@@ -116,7 +125,20 @@ class PageItem(SaveMixin, QtWidgets.QWidget):
             item._contents.setHtml(data['contents']['value'])
         return item
 
-    def marshal(self, asset_dir=".") -> dict:
+    def _save_asset(self):
+        """ If there is an asset, save it if it hasn't been saved, yet """
+        if self._type == "image" and not exists(self.asset_file_fq):
+            self.orig_pixmap.save(self.asset_file_fq, "PNG")  # TODO support GIFs
+
+    def _delete_asset(self):
+        """ If there is an asset, delete it """
+        if self._type == "image":
+            try:
+                remove(self.asset_file_fq)
+            except FileNotFoundError:
+                """ Do nothing """
+
+    def marshal(self) -> dict:
         """ marshal should return the content necessary to later restore this widget from a file """
         # TODO should probably make this a formal type
         geometry = (
@@ -132,18 +154,29 @@ class PageItem(SaveMixin, QtWidgets.QWidget):
             contents["value"] = self._html_contents
         elif self._type == "image":
             # Write assets to a file, then generate a url from it
-            # TODO create better way of managing assets
-            asset_file = join(asset_dir, "{}-{}-{}.fna".format(self.parent().section.id, self.parent().id, self.id))
-            self.orig_pixmap.save(asset_file, "PNG")  # TODO support GIFs
-            url = QtCore.QUrl.fromLocalFile(asset_file)
+            self._save_asset()
+            url = QtCore.QUrl.fromLocalFile(self.asset_file)
             contents["url"] = url.url()
         return {
             "geometry": geometry,
             "contents": contents,
         }
 
+    @property
+    def asset_file(self):
+        return "{}-{}-{}.fna".format(
+            self.parent().section.id,
+            self.parent().id,
+            self.id
+        )
+
+    @property
+    def asset_file_fq(self):
+        return join(Settings.asset_dir, self.asset_file)
+
     def deleteLater(self):
-        self.parent().delete_item_by_id(self.id)
+        self._delete_asset()
+        self.parent().delete_item(self.z_index)
         super().deleteLater()
 
 
@@ -351,7 +384,7 @@ class PageItemHeader(PageItemSurround):
             dialog.addAction(lower_option)
             dialog.addAction(cancel_option)
             dialog.triggered.connect(lambda _: dialog.deleteLater())
-            dialog.exec_(ev.pos())
+            dialog.popup(ev.pos())
 
         ev.accept()
 

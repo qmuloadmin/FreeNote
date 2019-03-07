@@ -51,14 +51,16 @@ class Page(QtWidgets.QWidget):
         """ Slot for listening to child item's raised signals. Handles reordering of the list of items """
         item = self.items.pop(index)
         self.items.append(item)
-        item.z_index = len(self.items) - 1
+        for i, each in enumerate(self.items):
+            each.z_index = i
         item.raise_()
 
     def _lower_item(self, index):
         """ Slot for listening to child item's lowered signals. Handles reordering of the list of items """
         item = self.items.pop(index)
         self.items.insert(0, item)
-        item.z_index = 0
+        for i, each in enumerate(self.items):
+            each.z_index = i
         item.lower()
 
     def _eval_resize(self):
@@ -181,10 +183,8 @@ class Page(QtWidgets.QWidget):
             i += 1
         return "{} {}".format(prefix, i)
 
-    def delete_item_by_id(self, id: str):
-        self.ids.remove(id)
-        item = None
-        for each in self.items:
-            if each.id == id:
-                item = each
-        self.items.remove(item)
+    def delete_item(self, i: int):
+        item = self.items.pop(i)
+        self.ids.remove(item.id)
+        for i, each in enumerate(self.items):
+            each.z_index = i
