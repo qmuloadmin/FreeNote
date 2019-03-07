@@ -10,6 +10,10 @@ class SaveMixin:
         super().setGeometry(pos)
         g_save_debouncer.start()
 
+    def deleteLater(self):
+        g_save_debouncer.start()
+        super().deleteLater()
+
     def _connect_signals(self):
         try:
             self.textChanged.connect(g_save_debouncer.start)

@@ -164,6 +164,9 @@ class Page(QtWidgets.QWidget):
                 self._add_item(item)
         event.accept()
 
+    def dragEnterEvent(self, event: QtGui.QDragEnterEvent):
+        event.accept()
+
     def mousePressEvent(self, event: QtGui.QMouseEvent):
         pos = QtCore.QRect()
         pos.setX(int(event.localPos().x()))

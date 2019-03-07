@@ -358,7 +358,7 @@ class PageItemHeader(PageItemSurround):
         elif ev.button() == QtCore.Qt.RightButton:
             """Open context dialog"""
             dialog = QtWidgets.QMenu("Actions")
-            dialog.setParent(self.parent())
+            dialog.setParent(self.parent().parent())
             dialog.setStyleSheet("""
             QMenu {{
                 background-color: {};
@@ -375,6 +375,8 @@ class PageItemHeader(PageItemSurround):
             close_option.setStatusTip("Delete this text box and all its contents")
             close_option.triggered.connect(self._remove)
             raise_option = QtWidgets.QAction("Bring To Front", dialog)
+            # Using parent() (and especially parent().parent()) is extremely fragile.
+            # TODO make more clear cut ways of retrieving the element we want
             raise_option.triggered.connect(lambda: self.parent().raised.emit(self.parent().z_index))
             lower_option = QtWidgets.QAction("Send To Back", dialog)
             lower_option.triggered.connect(lambda: self.parent().lowered.emit(self.parent().z_index))
@@ -384,7 +386,8 @@ class PageItemHeader(PageItemSurround):
             dialog.addAction(lower_option)
             dialog.addAction(cancel_option)
             dialog.triggered.connect(lambda _: dialog.deleteLater())
-            dialog.popup(ev.pos())
+            pos = self.mapToGlobal(ev.pos())
+            dialog.popup(self.parent().parent().mapFromGlobal(pos))
 
         ev.accept()
 
