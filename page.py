@@ -1,8 +1,8 @@
 from PySide2 import QtWidgets, QtGui, QtCore
 from utilities.debounce import Debouncer
-from style_consants import *
 from page_item import PageItem
 from threading import Timer
+from urllib.request import urlopen
 
 
 class PlaceholderPage(QtWidgets.QWidget):
@@ -155,13 +155,20 @@ class Page(QtWidgets.QWidget):
             pos.setWidth(200)  # TODO find a better way to set default width
             db = QtCore.QMimeDatabase()
             if "image" in db.mimeTypeForUrl(event.mimeData().urls()[0]).name():
-                # for some reason, images are not showing up as images. Not sure if this is due to testing env
-                # or if it will always be the case. Either way, it's really dumb.
                 image = event.mimeData().urls()[0].url()
-                print(image)
                 id = self._next_id("Image")
                 item = PageItem(id, pos, img=image, height_from_width=True)
                 self._add_item(item)
+            elif "application/octet-stream" in db.mimeTypeForUrl(event.mimeData().urls()[0]).name():
+                # If it's a stream, we need to download it. However, that could be arbitrarily huge
+                # For now, we're going to base the decision on the file extension.
+                url = event.mimeData().urls()[0].url()
+                if url.endswith(".png") or url.endswith(".jpg") or url.endswith(".jpeg"):
+                    id = self._next_id("Image")
+                    item = PageItem(id, pos, img=url, height_from_width=True)
+                    self._add_item(item)
+                # TODO add support for GIFs
+
         event.accept()
 
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent):
