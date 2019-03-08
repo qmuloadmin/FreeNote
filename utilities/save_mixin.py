@@ -14,6 +14,10 @@ class SaveMixin:
         g_save_debouncer.start()
         super().deleteLater()
 
+    def setText(self, text):
+        g_save_debouncer.start()
+        super().setText(text)
+
     def _connect_signals(self):
         try:
             self.textChanged.connect(g_save_debouncer.start)

@@ -88,6 +88,7 @@ class Section(QtWidgets.QTabWidget, SaveMixin):
             page = Page.unmarshal(id, each)
             pages.append(page)
         section = cls(new_id, pages)
+        section.setCurrentIndex(len(section.pages) - 1)
         return section
 
     def marshal(self) -> dict:

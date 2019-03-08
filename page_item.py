@@ -83,6 +83,10 @@ class PageItem(SaveMixin, QtWidgets.QWidget):
     def setFocus(self):
         self._contents.setFocus()
 
+    def _try_rename(self, name: str) -> bool:
+        """ check with the parent if we can use the new name. This implementation is kinda hacky. TODO fix """
+        return self.parent().rename_item(self, name)
+
     def mouseMoveEvent(self, ev: QtGui.QMouseEvent):
         if not self.hasMouseTracking():
             # don't accept propagated events
@@ -96,6 +100,75 @@ class PageItem(SaveMixin, QtWidgets.QWidget):
         pos.setWidth(width)
         pos.setHeight(height)
         self.setGeometry(pos)
+
+    def mouseDoubleClickEvent(self, event: QtGui.QMouseEvent):
+        self._rename_dialog()
+
+    def mouseReleaseEvent(self, event: QtGui.QMouseEvent):
+        self.setMouseTracking(False)
+        event.accept()
+
+    def mousePressEvent(self, ev: QtGui.QMouseEvent):
+        if ev.button() == QtCore.Qt.LeftButton:
+            self.drag_offset = ev.globalPos() - self.parent().mapToGlobal(self.pos())
+            self.setMouseTracking(True)
+            ev.accept()
+        elif ev.button() == QtCore.Qt.RightButton:
+            """Open context dialog"""
+            dialog = QtWidgets.QMenu("Actions")
+            dialog.setParent(self.parent())
+            dialog.setStyleSheet("""
+            QMenu {{
+                background-color: {};
+            }}
+            QMenu::item {{
+                background-color: transparent;
+            }}
+            QMenu::item:selected {{
+                background-color: {};
+                color: {};
+            }}
+            """.format(PAGE_ITEM_MENU_BG, PAGE_ITEM_MENU_SELECTED, DEFAULT_ITEM_TEXT_COLOR))
+            close_option = QtWidgets.QAction("Remove", dialog)
+            close_option.setStatusTip("Delete this text box and all its contents")
+            close_option.triggered.connect(self.deleteLater)
+            raise_option = QtWidgets.QAction("Bring To Front", dialog)
+            # Using parent() (and especially parent().parent()) is extremely fragile.
+            # TODO make more clear cut ways of retrieving the element we want
+            raise_option.triggered.connect(lambda: self.raised.emit(self.z_index))
+            lower_option = QtWidgets.QAction("Send To Back", dialog)
+            lower_option.triggered.connect(lambda: self.lowered.emit(self.z_index))
+            rename_option = QtWidgets.QAction("Rename", dialog)
+            rename_option.triggered.connect(self._rename_dialog)
+            cancel_option = QtWidgets.QAction("Cancel", dialog)
+            dialog.addAction(close_option)
+            dialog.addAction(raise_option)
+            dialog.addAction(lower_option)
+            dialog.addAction(rename_option)
+            dialog.addSeparator()
+            dialog.addAction(cancel_option)
+            dialog.triggered.connect(lambda _: dialog.deleteLater())
+            pos = self.mapToGlobal(ev.pos())
+            dialog.popup(self.parent().parent().mapFromGlobal(pos))
+            ev.accept()
+
+    def _rename_dialog(self):
+        new_id, ok = QtWidgets.QInputDialog.getText(
+            self,
+            "Rename Item",
+            "New name for this item",
+            QtWidgets.QLineEdit.Normal,
+            self.id
+        )
+        if ok:
+            result = self._try_rename(new_id)
+            if not result:
+                msg = QtWidgets.QMessageBox(self)
+                msg.setWindowTitle("Name Taken")
+                msg.setText("Another item on this page already has that name.")
+                msg.show()
+            else:
+                self._header.setText(self.id)
 
     def setGeometry(self, pos: QtCore.QRect):
         super().setGeometry(pos)
@@ -234,6 +307,10 @@ class PageTextEdit(QtWidgets.QTextEdit, SaveMixin):
         # Update the global text formatter with our current font size
         G_FORMAT_SIGNALLER.feedback_sized.emit(self.get_format().font().pointSize())
 
+    def mousePressEvent(self, e: QtGui.QMouseEvent):
+        super().mousePressEvent(e)
+        e.accept()  # Don't propagate the click even to parent (don't want to show two context menus)
+
     def focusOutEvent(self, e: QtGui.QFocusEvent):
         """ If the text widget loses focus and has no text, delete it"""
         super().focusOutEvent(e)
@@ -344,59 +421,20 @@ class PageItemSurround(QtWidgets.QLabel):
         self.opacityEffect.setProperty("opacity", 0)
 
 
-class PageItemHeader(PageItemSurround):
+class PageItemHeader(SaveMixin, PageItemSurround):
     """ A target for drag start events, as well as right click dialog menu """
 
     def __init__(self, s: str):
         super().__init__(s, "border: 1px solid {}; border-radius: 3px;".format(ITEM_BORDER_COLOR))
 
     def mousePressEvent(self, ev: QtGui.QMouseEvent):
-        # TODO make this offset part more accurate and less hacky
-        if ev.button() == QtCore.Qt.LeftButton:
-            self.parent().drag_offset = ev.globalPos() - self.parent().mapToGlobal(self.pos())
-            self.parent().setMouseTracking(True)
-        elif ev.button() == QtCore.Qt.RightButton:
-            """Open context dialog"""
-            dialog = QtWidgets.QMenu("Actions")
-            dialog.setParent(self.parent().parent())
-            dialog.setStyleSheet("""
-            QMenu {{
-                background-color: {};
-            }}
-            QMenu::item {{
-                background-color: transparent;
-            }}
-            QMenu::item:selected {{
-                background-color: {};
-                color: {};
-            }}
-            """.format(PAGE_ITEM_MENU_BG, PAGE_ITEM_MENU_SELECTED, DEFAULT_ITEM_TEXT_COLOR))
-            close_option = QtWidgets.QAction("Remove", dialog)
-            close_option.setStatusTip("Delete this text box and all its contents")
-            close_option.triggered.connect(self._remove)
-            raise_option = QtWidgets.QAction("Bring To Front", dialog)
-            # Using parent() (and especially parent().parent()) is extremely fragile.
-            # TODO make more clear cut ways of retrieving the element we want
-            raise_option.triggered.connect(lambda: self.parent().raised.emit(self.parent().z_index))
-            lower_option = QtWidgets.QAction("Send To Back", dialog)
-            lower_option.triggered.connect(lambda: self.parent().lowered.emit(self.parent().z_index))
-            cancel_option = QtWidgets.QAction("Cancel", dialog)
-            dialog.addAction(close_option)
-            dialog.addAction(raise_option)
-            dialog.addAction(lower_option)
-            dialog.addAction(cancel_option)
-            dialog.triggered.connect(lambda _: dialog.deleteLater())
-            pos = self.mapToGlobal(ev.pos())
-            dialog.popup(self.parent().parent().mapFromGlobal(pos))
+        ev.ignore()
 
-        ev.accept()
-
-    def _remove(self):
-        self.parent().deleteLater()
+    def mouseDoubleClickEvent(self, event: QtGui.QMouseEvent):
+        event.ignore()
 
     def mouseReleaseEvent(self, ev: QtGui.QMouseEvent):
-        self.parent().setMouseTracking(False)
-        ev.accept()
+        ev.ignore()
 
 
 class PageItemResizeLabel(PageItemSurround):

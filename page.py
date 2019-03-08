@@ -94,6 +94,16 @@ class Page(QtWidgets.QWidget):
             pos.setWidth(self.right_max.geometry().right())
         self.setGeometry(pos)
 
+    def rename_item(self, item, name: str) -> bool:
+        """ check to see if the suggested new id is available or not """
+        if name in self.ids:
+            return False
+        else:
+            self.ids.add(name)
+            self.ids.remove(item.id)
+            item.id = name
+        return True
+
     def marshal(self):
         data = {
             "items": {},
