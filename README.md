@@ -31,6 +31,8 @@ Save files may not work from version to version.
 - Select and move multiple items on a page at once
 - Normal File, Edit, etc menus for configuration and information
 - Dark Mode, other themes
+  - Including selecting icon themes from a list of included themes
+    - Currently this is limited to only KDE Breeze.
 - Logging (oh, so much logging)
 - Many, many more.
 
@@ -40,8 +42,10 @@ Please do. I need a ton of help to make this a good, stable, usable program.
 
 ### Current State
 
-It works, but likely will have many bugs. Icons only show up on Linux, so the text format toolbar is difficult to 
-use on Windows and Mac. My current goal is mostly to fix bugs before I add any substantial new features.
+It works, but likely will have many bugs. My current goal is mostly to fix bugs before I add any substantial new features.
+
+If your system doesn't comply with the opendesktop.org standard for themes,
+the current fallback default of KDE [Breeze](https://github.com/KDE/breeze-icons) will be used. 
 
 Currently, you can drag images from your local filesystem, ~~but not from a web browser, for instance (yet)~~.
 You can click anywhere and start typing, format the text, move any item around on the page, one at a time. 

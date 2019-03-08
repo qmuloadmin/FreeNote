@@ -2,6 +2,7 @@
 
 import sys
 from PySide2.QtWidgets import QWidget, QMessageBox, QApplication, QFileDialog, QVBoxLayout
+from PySide2.QtGui import QIcon
 from binder import Binder
 from text_format_palette import TextFormatPalette
 from utilities.settings import Settings, G_QSETTINGS
@@ -24,6 +25,16 @@ class MainWindow(QWidget):
         Settings.asset_dir = G_QSETTINGS.value("workspace/assetDir")
         if Settings.asset_dir is None:
             Settings.asset_dir = Settings.workspace_dir
+
+        # Set the currently running application's directory, for convenience
+        Settings.application_dir = __file__.replace("main.py", "")
+
+        # Initialize QIcon search paths and themes
+        search_paths = QIcon.themeSearchPaths()
+        search_paths.append(path.join(Settings.application_dir, Settings.icon_dir))
+        QIcon.setThemeSearchPaths(search_paths)
+        if QIcon.themeName() == "":
+            QIcon.setThemeName(Settings.fallback_theme_name)
 
         self.lo = QVBoxLayout()
         self.format_bar = TextFormatPalette(self)

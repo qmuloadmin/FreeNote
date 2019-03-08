@@ -21,6 +21,23 @@ class FormatSignaller(QObject):
 G_FORMAT_SIGNALLER = FormatSignaller()
 
 
+class TextFormatButton(QPushButton):
+
+    def __init__(self, text: str, icon=None):
+        if icon is not None:
+            super().__init__(icon, "")
+        else:
+            super().__init__(text)
+        self.setMaximumWidth(30)
+        self.setContentsMargins(1, 1, 1, 1)
+
+    @classmethod
+    def fromTheme(cls, theme: str):
+        icon = QIcon.fromTheme(theme)
+        btn = cls("", icon)
+        return btn
+
+
 class TextFormatPalette(QWidget):
     """ The main container for text formatting options """
 
@@ -29,35 +46,28 @@ class TextFormatPalette(QWidget):
         self.lo = QHBoxLayout(self)
         # Check here for icon names
         # https://specifications.freedesktop.org/icon-naming-spec/icon-naming-spec-latest.html#names
-        # TODO all these have some shared properties... break them out into a sub class
-        self.bold_button = QPushButton(QIcon.fromTheme("format-text-bold"), "")
-        self.bold_button.setMaximumWidth(30)
-        self.ital_button = QPushButton(QIcon.fromTheme("format-text-italic"), "")
-        self.ital_button.setMaximumWidth(30)
-        self.undl_button = QPushButton(QIcon.fromTheme("format-text-underline"), "")
-        self.undl_button.setMaximumWidth(30)
-        self.strk_button = QPushButton(QIcon.fromTheme("format-text-strikethrough"), "")
-        self.strk_button.setMaximumWidth(30)
-        self.just_left_button = QPushButton(QIcon.fromTheme("format-justify-left"), "")
-        self.just_left_button.setMaximumWidth(30)
-        self.just_right_button = QPushButton(QIcon.fromTheme("format-justify-right"), "")
-        self.just_right_button.setMaximumWidth(30)
-        self.just_center_button = QPushButton(QIcon.fromTheme("format-justify-center"), "")
-        self.just_center_button.setMaximumWidth(30)
-        self.foregnd_button = QPushButton("A")
-        self.foregnd_button.setMaximumWidth(30)
+        self.bold_button = TextFormatButton.fromTheme("format-text-bold")
+        self.ital_button = TextFormatButton.fromTheme("format-text-italic")
+        self.undl_button = TextFormatButton.fromTheme("format-text-underline")
+        self.strk_button = TextFormatButton.fromTheme("format-text-strikethrough")
+        self.just_left_button = TextFormatButton.fromTheme("format-justify-left")
+        self.just_right_button = TextFormatButton.fromTheme("format-justify-right")
+        self.just_center_button = TextFormatButton.fromTheme("format-justify-center")
+        self.foregnd_button = TextFormatButton.fromTheme("format-text-color")
         self.current_fg_color = QColor.fromRgb(0x000)
         self.current_bg_color = QColor.fromRgb(0xfff)
-        self.backgnd_button = QPushButton("A")
-        self.backgnd_button.setMaximumWidth(30)
+        # TODO find or create a suitable paintbrush or highlight icon, cause this is ugly
+        self.backgnd_button = TextFormatButton.fromTheme("format-text-color")
         self.backgnd_button.setStyleSheet("""
             background-color: {};        
         """.format(EDIT_TEXT_FOCUS_BG))
-        # TODO Figure out how to make these select buttons be long-press variants of the fg/bg buttons
-        self.foregnd_select_button = QPushButton("...")
-        self.foregnd_select_button.setMaximumWidth(30)
-        self.backgnd_select_button = QPushButton("...")
-        self.backgnd_select_button.setMaximumWidth(30)
+        self.foregnd_select_button = TextFormatButton("")
+        self.foregnd_select_button.setStyleSheet("""
+            background-color: {};
+        """.format(DEFAULT_ITEM_TEXT_COLOR))
+        self.foregnd_select_button.setMaximumWidth(10)
+        self.backgnd_select_button = QPushButton("▼")
+        self.backgnd_select_button.setMaximumWidth(12)
 
         # Configure font size input
         self.size_label = QLabel("Font Size:")
@@ -130,7 +140,7 @@ class TextFormatPalette(QWidget):
     def _select_fg_color(self):
         color = QColorDialog.getColor()
         self.current_fg_color = color
-        self.foregnd_button.setStyleSheet("color: {}".format(color.name()))
+        self.foregnd_select_button.setStyleSheet("background-color: {}".format(color.name()))
 
     def _select_bg_color(self):
         color = QColorDialog.getColor()
