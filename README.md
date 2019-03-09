@@ -47,9 +47,13 @@ It works, but likely will have many bugs. My current goal is mostly to fix bugs 
 If your system doesn't comply with the opendesktop.org standard for themes,
 the current fallback default of KDE [Breeze](https://github.com/KDE/breeze-icons) will be used. 
 
-Currently, you can drag images from your local filesystem, ~~but not from a web browser, for instance (yet)~~.
+Currently, you can drag images and animated GIFs from your local filesystem.
 You can click anywhere and start typing, format the text, move any item around on the page, one at a time. 
-Bulk selection and dragging will be added later.
+Bulk selection and dragging will be added later. Items can be sent to the back and brought to the front so text can lay over an image,
+or even a playing GIF. Items can be renamed (mostly pointless for now, but will be useful for linking later).
+
+Changes are saved automatically every 3 seconds after a change occurs. This is debounced so it doesn't occur every single change if they occur
+in quick succession. Currently, there is no way to save on-demand (will be added when normal menus are added).
 
 Here is a screenshot of the apearance, as of now, on Linux:
 ![Linux Screenshot](screenshots/freenote_ss.png)
