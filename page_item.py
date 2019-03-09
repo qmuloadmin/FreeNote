@@ -2,12 +2,10 @@ from style_consants import *
 from PySide2 import QtWidgets, QtGui, QtCore
 from utilities.save_mixin import SaveMixin
 from utilities.debounce import Debouncer
-from utilities.settings import Settings
 from text_format_palette import G_FORMAT_SIGNALLER
 from threading import Timer
-from urllib.request import urlopen
-from os.path import join, exists
-from os import remove, chdir, getcwd
+from image_page_item import PageImageItem
+from utilities.settings import G_QSETTINGS
 
 
 class PageItem(SaveMixin, QtWidgets.QWidget):
@@ -19,6 +17,7 @@ class PageItem(SaveMixin, QtWidgets.QWidget):
     # raised and lowered indicate that the item has been brought to front or sent to back
     raised = QtCore.Signal(int)
     lowered = QtCore.Signal(int)
+    geometry_changed = QtCore.Signal(QtWidgets.QWidget)
 
     def __init__(self, id: str, pos: QtCore.QRect, img="", height_from_width=False):
         super().__init__()
@@ -30,28 +29,16 @@ class PageItem(SaveMixin, QtWidgets.QWidget):
         self._header.setAlignment(QtCore.Qt.AlignCenter)
         # if img was provided, don't set the content as text, but as a label
         if img != "":
-            self._contents = QtWidgets.QLabel()
-            # asset URLs, when they are local files, are relative paths, are relative, not absolute
-            # for portability reasons. When we are restoring from a saved state. So, we should
-            # set our working directory to the asset directory
-            # URLs for files dragged in should be absolute anyway and not affected.
-            old_wd = getcwd()
-            chdir(Settings.asset_dir)
-            data = urlopen(img).read()
-            chdir(old_wd)
-
-            orig_pixmap = QtGui.QPixmap()
-            orig_pixmap.loadFromData(data)
-            pixmap = orig_pixmap.scaledToWidth(pos.width())
-
-            # orig pixmap is an asset that gets saved to disk
-            self.orig_pixmap = orig_pixmap
-
+            self._contents = PageImageItem(self, img, pos.width())
             if height_from_width:
                 # Make the widget big enough to contain the image
-                pos.setHeight(pixmap.height() + self._non_content_height())
-            self._contents.setPixmap(pixmap)
-            self._resize_debouncer = Debouncer(timeout=0.25)
+                pos.setHeight(self._contents.height + self._non_content_height())
+            try:
+                # Let the user customize how often a resize of the image is done when resizing the item container
+                timeout = int(G_QSETTINGS.value("application/interval_image_resize", "0.05"))
+            except ValueError:
+                timeout = 0.05
+            self._resize_debouncer = Debouncer(timeout=timeout)
             self._resize_debouncer.action = self._resize_image
             self._type = "image"
         else:
@@ -69,6 +56,10 @@ class PageItem(SaveMixin, QtWidgets.QWidget):
         self.setLayout(self._lo)
         self.setGeometry(pos)
         self._connect_signals()
+
+    @property
+    def page(self):
+        return self.parent()
 
     def _set_html_contents(self):
         """ stores the contents of the inner text edit widget in the main thread """
@@ -175,13 +166,11 @@ class PageItem(SaveMixin, QtWidgets.QWidget):
         if self._type == "image":
             self._resize_debouncer.start()
         if self.parent() is not None:
-            self.parent().edge_check(self)
+            self.geometry_changed.emit(self)
 
     def _resize_image(self):
         width = self.geometry().width()
-        pixmap = self.orig_pixmap
-        pixmap = pixmap.scaledToWidth(width)
-        self._contents.setPixmap(pixmap)
+        self._contents.resize(width)
 
     @classmethod
     def unmarshall(cls, id: str, data: dict):
@@ -193,23 +182,11 @@ class PageItem(SaveMixin, QtWidgets.QWidget):
         pos.setHeight(geo[3])
         if data['contents']['type'] == "image":
             item = cls(id, pos, img=data['contents']['url'])
+            item._contents.asset_name = str(data['contents']['asset_name'])
         else:
             item = cls(id, pos)
             item._contents.setHtml(data['contents']['value'])
         return item
-
-    def _save_asset(self):
-        """ If there is an asset, save it if it hasn't been saved, yet """
-        if self._type == "image" and not exists(self.asset_file_fq):
-            self.orig_pixmap.save(self.asset_file_fq, "PNG")  # TODO support GIFs
-
-    def _delete_asset(self):
-        """ If there is an asset, delete it """
-        if self._type == "image":
-            try:
-                remove(self.asset_file_fq)
-            except FileNotFoundError:
-                """ Do nothing """
 
     def marshal(self) -> dict:
         """ marshal should return the content necessary to later restore this widget from a file """
@@ -227,28 +204,18 @@ class PageItem(SaveMixin, QtWidgets.QWidget):
             contents["value"] = self._html_contents
         elif self._type == "image":
             # Write assets to a file, then generate a url from it
-            self._save_asset()
-            url = QtCore.QUrl.fromLocalFile(self.asset_file)
+            self._contents.save_asset()
+            url = QtCore.QUrl.fromLocalFile(self._contents.asset_file)
             contents["url"] = url.url()
+            contents["asset_name"] = self._contents.asset_name
         return {
             "geometry": geometry,
             "contents": contents,
         }
 
-    @property
-    def asset_file(self):
-        return "{}-{}-{}.fna".format(
-            self.parent().section.id,
-            self.parent().id,
-            self.id
-        )
-
-    @property
-    def asset_file_fq(self):
-        return join(Settings.asset_dir, self.asset_file)
-
     def deleteLater(self):
-        self._delete_asset()
+        if self._type == "image":
+            self._contents.delete_asset()
         self.parent().delete_item(self.z_index)
         super().deleteLater()
 

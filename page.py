@@ -2,7 +2,6 @@ from PySide2 import QtWidgets, QtGui, QtCore
 from utilities.debounce import Debouncer
 from page_item import PageItem
 from threading import Timer
-from urllib.request import urlopen
 
 
 class PlaceholderPage(QtWidgets.QWidget):
@@ -26,15 +25,24 @@ class Page(QtWidgets.QWidget):
         self.id = id
         self.ids = set()
         self._section = None
+        self._scroll_area = None
         # NOTE: order of items is SIGNIFICANT. Do not arbitrarily adjust it, without updating child item's z_index
         self.items = []
         # debouncing for resizing (shrinking) purposes
-        self.size_debouncer = Debouncer(self._size_timer)
+        self.size_debouncer = Debouncer(self._size_timer, timeout=0.5)
         self.size_debouncer.start()
         # these max variables store the farthest items for resizing based on item geometry
         self.bottom_max = None
         self.right_max = None
         self.setAcceptDrops(True)
+
+    @property
+    def scroll_area(self):
+        return self._scroll_area
+
+    @scroll_area.setter
+    def scroll_area(self, v):
+        self._scroll_area = v
 
     @property
     def section(self):
@@ -83,13 +91,13 @@ class Page(QtWidgets.QWidget):
             if item.geometry().bottom() > self.bottom_max.geometry().bottom():
                 self.bottom_max = item
 
-        if self.bottom_max.geometry().bottom() < self.section.geometry().bottom():
-            pos.setHeight(self.section.geometry().width())
+        if self.bottom_max.geometry().bottom() < self.scroll_area.viewport().height():
+            pos.setHeight(self.scroll_area.viewport().height())
         else:
             pos.setHeight(self.bottom_max.geometry().bottom())
-        if self.right_max.geometry().right() < self.section.geometry().right():
 
-            pos.setWidth(self.section.geometry().width())
+        if self.right_max.geometry().right() < self.scroll_area.viewport().width():
+            pos.setWidth(self.scroll_area.viewport().width())
         else:
             pos.setWidth(self.right_max.geometry().right())
         self.setGeometry(pos)
@@ -125,7 +133,7 @@ class Page(QtWidgets.QWidget):
             page._add_item(item)
         return page
 
-    def edge_check(self, item: PageItem):
+    def _edge_check(self, item: PageItem):
         """ Called when a PageItem is moved, sending it's new right-most point and bottom-most point """
         # TODO make this support top left corner detection for infinite scrolling in both directions (more complicated)
         pos = self.geometry()
@@ -133,14 +141,14 @@ class Page(QtWidgets.QWidget):
         bottom = item.geometry().bottom()
         if right > pos.width():
             pos.setWidth(right)
-            self.right_max = self
+            self.right_max = item
         elif self.right_max == item:
             # The element being moved right now was the previous right-most element. Check if it still is
             self.size_debouncer.start()
 
         if bottom > pos.height():
             pos.setHeight(bottom)
-            self.bottom_max = self
+            self.bottom_max = item
         elif self.bottom_max == item:
             self.size_debouncer.start()
         # TODO don't bother setting if there's no change (or is this already checked downstream?)
@@ -155,6 +163,7 @@ class Page(QtWidgets.QWidget):
         item.z_index = len(self.items) - 1  # MUST start at zero for proper behavior of self._raise_item
         item.raised.connect(self._raise_item)
         item.lowered.connect(self._lower_item)
+        item.geometry_changed.connect(self._edge_check)
 
     def dropEvent(self, event: QtGui.QDropEvent):
         super().dropEvent(event)
@@ -173,11 +182,10 @@ class Page(QtWidgets.QWidget):
                 # If it's a stream, we need to download it. However, that could be arbitrarily huge
                 # For now, we're going to base the decision on the file extension.
                 url = event.mimeData().urls()[0].url()
-                if url.endswith(".png") or url.endswith(".jpg") or url.endswith(".jpeg"):
+                if url.endswith(".png") or url.endswith(".jpg") or url.endswith(".jpeg") or url.endswith(".gif"):
                     id = self._next_id("Image")
                     item = PageItem(id, pos, img=url, height_from_width=True)
                     self._add_item(item)
-                # TODO add support for GIFs
 
         event.accept()
 

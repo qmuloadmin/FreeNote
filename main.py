@@ -22,16 +22,15 @@ class MainWindow(QWidget):
             else:
                 workspace = G_QSETTINGS.value("workspace/dir", "")
         Settings.workspace_dir = workspace
-        Settings.asset_dir = G_QSETTINGS.value("workspace/assetDir")
-        if Settings.asset_dir is None:
-            Settings.asset_dir = Settings.workspace_dir
+        Settings.asset_dir = G_QSETTINGS.value("workspace/asset_path", Settings.workspace_dir)
 
         # Set the currently running application's directory, for convenience
         Settings.application_dir = __file__.replace("main.py", "")
+        icon_dir = G_QSETTINGS.value("application/icon_path", path.join(Settings.application_dir, "icons"))
 
         # Initialize QIcon search paths and themes
         search_paths = QIcon.themeSearchPaths()
-        search_paths.append(path.join(Settings.application_dir, Settings.icon_dir))
+        search_paths.append(icon_dir)
         QIcon.setThemeSearchPaths(search_paths)
         if QIcon.themeName() == "":
             QIcon.setThemeName(Settings.fallback_theme_name)

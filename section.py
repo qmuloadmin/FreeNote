@@ -59,6 +59,8 @@ class Section(QtWidgets.QTabWidget, SaveMixin):
         page.section = self
         scroll = QtWidgets.QScrollArea(self)
         scroll.setWidget(page)
+        scroll.setStyleSheet("border: 0px;")
+        page.scroll_area = scroll
         self.ids.add(page.id)
         self.pages.append(page)
         pos = page.geometry()
