@@ -10,12 +10,14 @@ import uuid
 class PageImageItem(QtWidgets.QLabel, SaveMixin):
     """ Supports common image formats, as well as GIF images, which technically load as QMovies, instead of Pixmaps """
 
-    def __init__(self, parent, img_url, width: int):
+    def __init__(self, parent, img_url, width: int, asset_name=None):
         super().__init__(parent)
 
         self._play_btn = None
         # The name of the asset file once saved to disk
         self.asset_name = str(uuid.uuid4())
+        if asset_name is not None:
+            self.asset_name = asset_name
         # asset URLs, when they are local files, are relative paths, not absolute
         # for portability reasons. When we are restoring from a saved state. So, we should
         # set our working directory to the asset directory

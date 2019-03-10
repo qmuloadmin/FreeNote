@@ -56,4 +56,4 @@ Changes are saved automatically every 3 seconds after a change occurs. This is d
 in quick succession. Currently, there is no way to save on-demand (will be added when normal menus are added).
 
 Here is a screenshot of the apearance, as of now, on Linux:
-![Linux Screenshot](screenshots/freenote_ss.png)
+![Linux Screenshot](screenshots/freenote_sample.gif)

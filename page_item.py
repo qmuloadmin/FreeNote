@@ -5,10 +5,11 @@ from utilities.debounce import Debouncer
 from text_format_palette import G_FORMAT_SIGNALLER
 from threading import Timer
 from image_page_item import PageImageItem
+from utilities.rename_dialog import RenameableMixin
 from utilities.settings import G_QSETTINGS
 
 
-class PageItem(SaveMixin, QtWidgets.QWidget):
+class PageItem(SaveMixin, QtWidgets.QWidget, RenameableMixin):
     """ Surrounds every EditText or Image widget so it can be dragged and dropped and resized.
      Can be either text (default) or an image (if `img` is provided, which should be a URL).
      Set height_from_width when providing an image to scale the height of the entire widget from
@@ -19,8 +20,11 @@ class PageItem(SaveMixin, QtWidgets.QWidget):
     lowered = QtCore.Signal(int)
     geometry_changed = QtCore.Signal(QtWidgets.QWidget)
 
-    def __init__(self, id: str, pos: QtCore.QRect, img="", height_from_width=False):
+    _unique_resource_name = "Item"
+
+    def __init__(self, id: str, pos: QtCore.QRect, *content_args, img="", height_from_width=False):
         super().__init__()
+        # satisfy RenameableMixin abstract property
         self.id = id
         self._lo = QtWidgets.QVBoxLayout()
         self._lo.setMargin(0)
@@ -29,7 +33,7 @@ class PageItem(SaveMixin, QtWidgets.QWidget):
         self._header.setAlignment(QtCore.Qt.AlignCenter)
         # if img was provided, don't set the content as text, but as a label
         if img != "":
-            self._contents = PageImageItem(self, img, pos.width())
+            self._contents = PageImageItem(self, img, pos.width(), *content_args)
             if height_from_width:
                 # Make the widget big enough to contain the image
                 pos.setHeight(self._contents.height + self._non_content_height())
@@ -74,9 +78,12 @@ class PageItem(SaveMixin, QtWidgets.QWidget):
     def setFocus(self):
         self._contents.setFocus()
 
-    def _try_rename(self, name: str) -> bool:
+    def _try_rename(self, name: str, *args) -> bool:
         """ check with the parent if we can use the new name. This implementation is kinda hacky. TODO fix """
-        return self.parent().rename_item(self, name)
+        success = self.parent().rename_item(self, name)
+        if success:
+            self._header.setText(self.id)
+        return success
 
     def mouseMoveEvent(self, ev: QtGui.QMouseEvent):
         if not self.hasMouseTracking():
@@ -143,24 +150,6 @@ class PageItem(SaveMixin, QtWidgets.QWidget):
             dialog.popup(self.parent().parent().mapFromGlobal(pos))
             ev.accept()
 
-    def _rename_dialog(self):
-        new_id, ok = QtWidgets.QInputDialog.getText(
-            self,
-            "Rename Item",
-            "New name for this item",
-            QtWidgets.QLineEdit.Normal,
-            self.id
-        )
-        if ok:
-            result = self._try_rename(new_id)
-            if not result:
-                msg = QtWidgets.QMessageBox(self)
-                msg.setWindowTitle("Name Taken")
-                msg.setText("Another item on this page already has that name.")
-                msg.show()
-            else:
-                self._header.setText(self.id)
-
     def setGeometry(self, pos: QtCore.QRect):
         super().setGeometry(pos)
         if self._type == "image":
@@ -181,8 +170,8 @@ class PageItem(SaveMixin, QtWidgets.QWidget):
         pos.setWidth(geo[2])
         pos.setHeight(geo[3])
         if data['contents']['type'] == "image":
-            item = cls(id, pos, img=data['contents']['url'])
-            item._contents.asset_name = str(data['contents']['asset_name'])
+            item = cls(id, pos, data['contents']['asset_name'], img=data['contents']['url'])
+            item._contents.asset_name = data['contents']['asset_name']
         else:
             item = cls(id, pos)
             item._contents.setHtml(data['contents']['value'])

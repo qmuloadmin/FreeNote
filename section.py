@@ -1,10 +1,13 @@
 from PySide2 import QtWidgets, QtGui
 from utilities.save_mixin import SaveMixin
-from page import Page, PlaceholderPage
+from utilities.rename_dialog import RenameableMixin
+from page import Page
 from style_consants import *
 
 
-class Section(QtWidgets.QTabWidget, SaveMixin):
+class Section(QtWidgets.QTabWidget, SaveMixin, RenameableMixin):
+
+    _unique_resource_name = "Page"
 
     def __init__(self, id: str, pages=[]):
         super().__init__()
@@ -17,6 +20,13 @@ class Section(QtWidgets.QTabWidget, SaveMixin):
         # TODO figure out why the ::tab styles below are being ignored
         self.setStyleSheet("""
         background-color: {};
+        margin: 0px;
+        QTabWidget::pane {{
+            border-top: 0px;
+            border-bottom: 0px;
+            border-left: 0px;
+            border-right: 1px solid black
+        }}
         QTabBar::tab {{
             background-color: {};
             min-height: 12ex;
@@ -29,10 +39,25 @@ class Section(QtWidgets.QTabWidget, SaveMixin):
             self._add_page(page)
 
         self.tabBar().tabBarClicked.connect(self._check_handle_new_section)
+        self.tabBarDoubleClicked.connect(self._rename_dialog)
         self._connect_signals()
 
     def _append_placeholder(self):
         self.tabBar().addTab("New Page")
+
+    def _try_rename(self, new_id: str, *args) -> bool:
+        index = args[0]
+        if index == len(self.pages):
+            return False  # TODO should really indicate that "new page" can't be renamed. Return true and do nothing?
+        new_id = "page-" + new_id
+        if new_id not in self.ids:
+            page = self.pages[index]
+            self.ids.remove(page.id)
+            self.ids.add(new_id)
+            page.id = new_id
+            self.setTabText(index, new_id)
+            return True
+        return False
 
     def _check_handle_new_section(self, index: str):
         if index == len(self.pages):
@@ -80,8 +105,12 @@ class Section(QtWidgets.QTabWidget, SaveMixin):
         page.mousePressEvent(event)
         self._append_placeholder()
 
+    # overridden methods to deal with using the id (which starts with page-) without displaying the prefix
     def addTab(self, w: QtWidgets.QWidget, id: str) -> int:
         return super().addTab(w, id[5:])
+
+    def setTabText(self, index: int, text: str):
+        super().setTabText(index, text[5:])
 
     @classmethod
     def unmarshal(cls, new_id: str, data: dict):

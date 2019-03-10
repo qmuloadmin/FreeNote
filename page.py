@@ -4,19 +4,6 @@ from page_item import PageItem
 from threading import Timer
 
 
-class PlaceholderPage(QtWidgets.QWidget):
-    """ The placeholder is basically the "new page" that always exists in the section. If clicked, it transforms
-    into a normal Page and calls the parent Section to update with a new, blank placeholder page """
-
-    def __init__(self, update):
-        """ update should be the function to be called on update """
-        super().__init__()
-        self._update = update
-
-    def mousePressEvent(self, event: QtGui.QMouseEvent):
-        self._update(event)
-
-
 class Page(QtWidgets.QWidget):
     """ Page is a single, infinitely scrolling, drag and drop target-able page in the notebook """
 

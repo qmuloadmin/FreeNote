@@ -2,12 +2,17 @@ from PySide2.QtWidgets import QTabWidget, QWidget
 from section import Section
 from oyaml import load, dump
 from utilities.toaster import ToasterMixin
+from utilities.rename_dialog import RenameableMixin
+from utilities.settings import G_QSETTINGS
 from string import ascii_uppercase
+from style_consants import *
 
 
-class Notebook(QTabWidget, ToasterMixin):
+class Notebook(QTabWidget, ToasterMixin, RenameableMixin):
     """ Notebooks hold sections, which hold pages. They are part of a binder, the root of the workspace. Each notebook
      is its own file """
+
+    _unique_resource_name = "section"
 
     def __init__(self, id="My Notebook", sections=[]):
         super().__init__()
@@ -17,9 +22,18 @@ class Notebook(QTabWidget, ToasterMixin):
         self.setTabPosition(self.West)
         self.setTabsClosable(True)
         self.id = id
+        self.setStyleSheet("""
+        QTabWidget::pane {{
+            border: 1px solid {};
+            border-top: 0px;
+            border-bottom: 0px;
+            border-right: 0px;
+        }}
+        """.format(TAB_PANE_BORDER_COLOR))
         self.tabBar().addTab("New Section")
         self.tabBar().tabBarClicked.connect(self._check_handle_new_section)
         self.tabCloseRequested.connect(self._remove_section)
+        self.tabBarDoubleClicked.connect(self._rename_dialog)
         for each in sections:
             self._add_section(each)
 
@@ -30,6 +44,20 @@ class Notebook(QTabWidget, ToasterMixin):
             section = Section(id)
             self._add_section(section)
             self.setCurrentIndex(len(self.sections) - 1)
+
+    def _try_rename(self, new_id: str, *args) -> bool:
+        index = args[0]
+        if index == len(self.sections):
+            return True
+        new_id = "section-" + new_id
+        if new_id not in self.ids:
+            section = self.sections[index]
+            self.ids.remove(section.id)
+            self.ids.add(new_id)
+            section.id = new_id
+            self.setTabText(index, new_id)
+            return True
+        return False
 
     def _remove_section(self, index: int):
         if index == len(self.sections):
@@ -47,8 +75,19 @@ class Notebook(QTabWidget, ToasterMixin):
         self.tabBar().addTab("New Section")
 
     def addTab(self, widget: QWidget, id: str):
-        id = id[8:]
-        super().addTab(widget, id)
+        index = super().addTab(widget, self._shorten_name(id))
+        self.setTabToolTip(index, id[8:])
+
+    @staticmethod
+    def _shorten_name(name):
+        max_len = int(G_QSETTINGS.value("application/maximum_tab_display_length", "16")) + 8
+        if len(name) > max_len + 3:  # don't truncate name if adding ellipses will make it the same length
+            return name[8:max_len] + "..."
+        return name[8:]
+
+    def setTabText(self, index: int, text: str):
+        super().setTabText(index, self._shorten_name(text))
+        self.setTabToolTip(index, text[8:])
 
     def _next_id(self, prefix="section", start="A"):
         if "{}-{}".format(prefix, start) not in self.ids:

@@ -1,27 +1,49 @@
 from PySide2.QtWidgets import QTabWidget
 from utilities.settings import G_QSETTINGS, Settings
+from utilities.rename_dialog import RenameableMixin
 from notebook import Notebook
-from os import path, listdir
+from os import path, listdir, remove
+from style_consants import TAB_PANE_BORDER_COLOR
 
 
-class Binder(QTabWidget):
+class Binder(QTabWidget, RenameableMixin):
     """ Binders are the root of the notebook workspace. Where each notebook is a file, binders are the folder those
     files are in. Binders display each notebook as a tab, and allow the user to add a new notebook. """
+
+    _unique_resource_name = "notebook"
 
     def __init__(self):
         """ pass a workspace in order to load from a specific folder. Otherwise, the contents of configuration files
         will be checked (or registry, in ms windows), and environment variables to override those defaults """
-
         super().__init__()
         self.notebooks = []
         self.ids = set()
         self._just_loaded = False
         self.setTabPosition(self.West)
+        self.tabBarDoubleClicked.connect(self._rename_dialog)
         self.setStyleSheet("""
-        QTabWidget::tab-bar {
+        QTabWidget::pane {{
+            border: 0px;
+            border-top: 1px solid {};
+        }}
+        QTabWidget::tab-bar {{
             top: 0;
-        }
-        """)
+        }}
+        """.format(TAB_PANE_BORDER_COLOR))
+
+    def _try_rename(self, new_id: str, *args):
+        index = args[0]
+        if index > len(self.notebooks):
+            return True
+        if new_id not in self.ids:
+            notebook = self.notebooks[index]
+            self.ids.remove(notebook.id)
+            remove(path.join(Settings.workspace_dir, "notebook-{}.fnbook".format(notebook.id)))
+            self.ids.add(new_id)
+            notebook.id = new_id
+            self.setTabText(index, new_id)
+            return True
+        return False
 
     def load_workspace(self):
         self._just_loaded = True
@@ -30,7 +52,7 @@ class Binder(QTabWidget):
                 notebook = Notebook.from_file(path.join(Settings.workspace_dir, each))
                 self._add_notebook(notebook)
         if len(self.notebooks) == 0:
-            # Append a starting notebook, for now, since there's no way to add notebooks yet
+            # Append a starting notebook
             notebook = Notebook("My Notebook")
             self._add_notebook(notebook)
 

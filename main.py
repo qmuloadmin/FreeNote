@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 
 import sys
-from PySide2.QtWidgets import QWidget, QMessageBox, QApplication, QFileDialog, QVBoxLayout
+from PySide2.QtWidgets import QWidget, QMessageBox, QApplication, QFileDialog, QVBoxLayout, QMainWindow
 from PySide2.QtGui import QIcon
 from binder import Binder
 from text_format_palette import TextFormatPalette
@@ -10,7 +10,8 @@ from utilities.debounce import g_save_debouncer
 from os import environ, path
 
 
-class MainWindow(QWidget):
+class ContentWidget(QWidget):
+    """ The main, central widget for the QMainWindow. Most widgets are a child of this one. """
 
     def __init__(self, workspace=None):
         super().__init__()
@@ -74,7 +75,7 @@ class MainWindow(QWidget):
 if __name__ == "__main__":
     app = QApplication([])
     app.setApplicationName("Free Note")
-    window = MainWindow()
+    window = ContentWidget()
     window.resize(1000, 800)
     window.show()
 
