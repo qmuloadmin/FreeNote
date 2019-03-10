@@ -26,6 +26,7 @@ class PageImageItem(QtWidgets.QLabel, SaveMixin):
         chdir(Settings.asset_dir)
         data = urlopen(img_url).read()
         chdir(old_wd)
+        self.setStyleSheet("background: transparent;")
 
         orig_pixmap = QtGui.QPixmap()
         orig_pixmap.loadFromData(data)
