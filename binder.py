@@ -2,7 +2,7 @@ from PySide2.QtWidgets import QTabWidget
 from utilities.settings import G_QSETTINGS, Settings
 from utilities.rename_dialog import RenameableMixin
 from notebook import Notebook
-from os import path, listdir, remove
+from os import path, listdir, rename
 from style_consants import TAB_PANE_BORDER_COLOR
 
 
@@ -38,7 +38,10 @@ class Binder(QTabWidget, RenameableMixin):
         if new_id not in self.ids:
             notebook = self.notebooks[index]
             self.ids.remove(notebook.id)
-            remove(path.join(Settings.workspace_dir, "notebook-{}.fnbook".format(notebook.id)))
+            rename(
+                path.join(Settings.workspace_dir, "notebook-{}.fnbook".format(notebook.id)),
+                path.join(Settings.workspace_dir, "notebook-{}.fnbook".format(new_id))
+            )
             self.ids.add(new_id)
             notebook.id = new_id
             self.setTabText(index, new_id)
@@ -60,6 +63,14 @@ class Binder(QTabWidget, RenameableMixin):
         self.addTab(book, book.id)
         self.notebooks.append(book)
         self.ids.add(book.id)
+
+    def new_notebook(self, name: str) -> bool:
+        """ Try to create a new notebook with name. If the name already exists, return False"""
+        if name in self.ids:
+            return False
+        nb = Notebook(name)
+        self._add_notebook(nb)
+        return True
 
     def save(self):
         if self._just_loaded:

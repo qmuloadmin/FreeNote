@@ -69,7 +69,7 @@ class TextFormatPalette(QToolBar):
         self.foregnd_select_button.setMaximumWidth(10)
         self.backgnd_select_button = QPushButton("▼")
         self.addWidget(self.backgnd_button)
-        self.backgnd_select_button.setMaximumWidth(12)
+        self.backgnd_select_button.setMaximumWidth(15)
         self.addWidget(self.backgnd_select_button)
         self.addSeparator()
 

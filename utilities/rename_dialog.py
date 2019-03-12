@@ -30,10 +30,11 @@ class RenameableMixin:
         if ok:
             result = self._try_rename(new_id, *args)
             if not result:
-                msg = QtWidgets.QMessageBox(self)
-                msg.setWindowTitle("Name Taken")
-                msg.setText("Another {} already has that name.".format(lc_name))
-                msg.show()
+                QtWidgets.QMessageBox(self).warning(
+                    self,
+                    "Name Taken",
+                    "Another {} already has that name.".format(lc_name)
+                )
             else:
                 # Not sure if we should explicitly call the save debouncer here, or emit a signal that is connected
                 # by something using SaveMixin. TODO evaluate
