@@ -1,6 +1,6 @@
 ## Free Note
 
-Free Note is an attempt to create a free and open source version of Microsoft's One Note. 
+Free Note is an attempt to create a free and open source alternative to Microsoft's One Note. 
 It's not a direct clone (certainly not now, but I also never intend it to be).
 The major desire is to match OneNote's style of click-anywhere and start typing, move text around freely
 in an infinitely scrolling and expanding page, and drag and drop both text and images from other sources.
