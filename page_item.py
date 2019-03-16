@@ -252,6 +252,11 @@ class PageTextEdit(QtWidgets.QTextEdit, SaveMixin):
         G_FORMAT_SIGNALLER.justified.connect(cls.justify_text)
         G_FORMAT_SIGNALLER.background_colored.connect(cls.color_text_bg)
         G_FORMAT_SIGNALLER.foreground_colored.connect(cls.color_text)
+        G_FORMAT_SIGNALLER.code_formatted.connect(cls.format_text_code)
+        G_FORMAT_SIGNALLER.family_formatted.connect(cls.format_text_family)
+        G_FORMAT_SIGNALLER.bulleted.connect(cls.bullet_text)
+        G_FORMAT_SIGNALLER.numbered.connect(cls.number_text)
+        G_FORMAT_SIGNALLER.checkbox_inserted.connect(cls.insert_checkbox)
 
     def focusInEvent(self, e: QtGui.QFocusEvent):
         super().focusInEvent(e)
@@ -261,10 +266,11 @@ class PageTextEdit(QtWidgets.QTextEdit, SaveMixin):
         self.set_active_item(self)
         self._connect_format_signals()
         # Update the global text formatter with our current font size
-        G_FORMAT_SIGNALLER.feedback_sized.emit(self.get_format().font().pointSize())
+        G_FORMAT_SIGNALLER.active_font_changed.emit(self.get_format().font())
 
     def mousePressEvent(self, e: QtGui.QMouseEvent):
         super().mousePressEvent(e)
+        G_FORMAT_SIGNALLER.active_font_changed.emit(self.get_format().font())  # in case we selected different text
         e.accept()  # Don't propagate the click even to parent (don't want to show two context menus)
 
     def focusOutEvent(self, e: QtGui.QFocusEvent):
@@ -336,6 +342,60 @@ class PageTextEdit(QtWidgets.QTextEdit, SaveMixin):
         f = cls.active_item().get_format()
         f.setBackground(brush)
         cls.active_item().set_format(f)
+
+    @classmethod
+    def format_text_family(cls, family: str):
+        fmt = cls.active_item().get_format()
+        font = fmt.font()
+        font.setFamily(family)
+        fmt.setFont(font)
+        cls.active_item().set_format(fmt)
+
+    @classmethod
+    def bullet_text(cls):
+        """ convert selected text into a bulletted list. Or, if no text selected, start a new bulleted list """
+        l_format = QtGui.QTextListFormat()
+        l_format.setStyle(l_format.ListDisc)
+        cls.active_item().convert_to_list(l_format)
+
+    @classmethod
+    def number_text(cls):
+        """ start a numbered list. Numbered technically just means ordered, so sub-lists could be alpha or roman """
+        l_format = QtGui.QTextListFormat()
+        l_format.setStyle(l_format.ListDecimal)
+        cls.active_item().convert_to_list(l_format)
+
+    @classmethod
+    def format_text_code(cls):
+        """ This is basically a shortcut to format some text to be monospace. In the future, more features may be added
+        like support for syntax highlighting, or contrasting background color """
+        fmt = cls.active_item().get_format()
+        font = fmt.font()
+        font.setFamily("Liberation Mono")
+        font.setKerning(False)
+        fmt.setFont(font)
+        # set tab stop to be no stupidly huge like the default. Unfortunately, this is global for the TextEdit
+        # so there might be merit (including in some special bg/color formatting) to making code a discrete TextEdit
+        # TODO make this save... probably needs to be a different type of item
+        tab_stop = int(G_QSETTINGS.value("code/tabstop", "4"))
+        cls.active_item().setTabStopWidth(tab_stop * QtGui.QFontMetrics(font).width(" "))
+        cls.active_item().set_format(fmt)
+
+    @classmethod
+    def insert_checkbox(cls):
+        cursor = cls.active_item().textCursor()
+        html = "<input type='checkbox' />"
+        if cursor.selectedText() != "":
+            html += cursor.selectedText()
+        cls.active_item().insertHtml(html)
+
+    def convert_to_list(self, format: QtGui.QTextListFormat):
+        # TODO support automatic nested lists converting formats as needed (numerals to alpha to roman, etc)
+        cursor = self.textCursor()
+        if cursor.selectedText() != "":
+            cursor.createList(format)
+        else:
+            cursor.insertList(format)
 
     def get_format(self) -> QtGui.QTextCharFormat:
         cursor = self.textCursor()
