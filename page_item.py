@@ -61,6 +61,16 @@ class PageItem(SaveMixin, QtWidgets.QWidget, RenameableMixin):
         self.setGeometry(pos)
         self._connect_signals()
 
+    def convert_contents(self, new_type: str):
+        if new_type == "code":
+            text = self._contents.toHtml()
+            self._lo.removeWidget(self._contents)
+            self._contents.deleteLater()
+            self._contents = PageCodeEditItem(text)
+            self._lo.insertWidget(1, self._contents)
+            self._type = new_type
+            self._contents.textChanged.connect(self._set_html_contents)
+
     @property
     def page(self):
         return self.parent()
@@ -175,6 +185,9 @@ class PageItem(SaveMixin, QtWidgets.QWidget, RenameableMixin):
         else:
             item = cls(id, pos)
             item._contents.setHtml(data['contents']['value'])
+            if data['contents']['type'] != 'text':
+                item.convert_contents(data['contents']['type'])
+
         return item
 
     def marshal(self) -> dict:
@@ -190,6 +203,8 @@ class PageItem(SaveMixin, QtWidgets.QWidget, RenameableMixin):
             "type": self._type,
         }
         if self._type == "text":
+            contents["value"] = self._html_contents
+        elif self._type == "code":
             contents["value"] = self._html_contents
         elif self._type == "image":
             # Write assets to a file, then generate a url from it
@@ -209,8 +224,8 @@ class PageItem(SaveMixin, QtWidgets.QWidget, RenameableMixin):
         super().deleteLater()
 
 
-class PageTextEdit(QtWidgets.QTextEdit, SaveMixin):
-
+class PageTextContent(QtWidgets.QTextEdit, SaveMixin):
+    """ Super class of all text-based item types."""
     # _active_item tracks, statically, which Item currently has focus. This is for receiving text format signals
     # from the global text formatter.
     _active_item = None
@@ -220,43 +235,24 @@ class PageTextEdit(QtWidgets.QTextEdit, SaveMixin):
         super().__init__(initial_text)
         self.delete_timer = Timer(5, self.deleteLater)
         self.setStyleSheet("""
-        QTextEdit {{
-            background-color: transparent;
-            border: 1px dotted {};
-        }}
-        QTextEdit::focus {{
-            background-color: {};
-        }}
-        """.format(ITEM_BORDER_COLOR, EDIT_TEXT_FOCUS_BG))
+            QTextEdit {{
+                background-color: transparent;
+                border: 1px dotted {};
+            }}
+            QTextEdit::focus {{
+                background-color: {};
+            }}
+            """.format(ITEM_BORDER_COLOR, EDIT_TEXT_FOCUS_BG))
         self._connect_signals()
 
-    @classmethod
-    def active_item(cls):
-        cls._active_item.setFocus()
-        return cls._active_item
+    @staticmethod
+    def active_item():
+        PageTextContent._active_item.setFocus()
+        return PageTextContent._active_item
 
-    @classmethod
-    def set_active_item(cls, v):
-        cls._active_item = v
-
-    @classmethod
-    def _connect_format_signals(cls):
-        if cls._connected:
-            return
-        cls._connected = True
-        G_FORMAT_SIGNALLER.underlined.connect(cls.underline_text)
-        G_FORMAT_SIGNALLER.bolded.connect(cls.bold_text)
-        G_FORMAT_SIGNALLER.italicized.connect(cls.italicize_text)
-        G_FORMAT_SIGNALLER.struckthrough.connect(cls.strikethrough_text)
-        G_FORMAT_SIGNALLER.sized.connect(cls.resize_text)
-        G_FORMAT_SIGNALLER.justified.connect(cls.justify_text)
-        G_FORMAT_SIGNALLER.background_colored.connect(cls.color_text_bg)
-        G_FORMAT_SIGNALLER.foreground_colored.connect(cls.color_text)
-        G_FORMAT_SIGNALLER.code_formatted.connect(cls.format_text_code)
-        G_FORMAT_SIGNALLER.family_formatted.connect(cls.format_text_family)
-        G_FORMAT_SIGNALLER.bulleted.connect(cls.bullet_text)
-        G_FORMAT_SIGNALLER.numbered.connect(cls.number_text)
-        G_FORMAT_SIGNALLER.checkbox_inserted.connect(cls.insert_checkbox)
+    @staticmethod
+    def set_active_item(v):
+        PageTextContent._active_item = v
 
     def focusInEvent(self, e: QtGui.QFocusEvent):
         super().focusInEvent(e)
@@ -280,123 +276,6 @@ class PageTextEdit(QtWidgets.QTextEdit, SaveMixin):
             self.delete_timer = Timer(5, self.parent().deleteLater)
             self.delete_timer.start()
 
-    @classmethod
-    def bold_text(cls):
-        f = cls.active_item().get_format()
-        if f.fontWeight() == 75:
-            f.setFontWeight(50)
-        else:
-            f.setFontWeight(75)
-        cls.active_item().set_format(f)
-
-    @classmethod
-    def italicize_text(cls):
-        f = cls.active_item().get_format()
-        if f.fontItalic():
-            f.setFontItalic(False)
-        else:
-            f.setFontItalic(True)
-        cls.active_item().set_format(f)
-
-    @classmethod
-    def underline_text(cls):
-        f = cls.active_item().get_format()
-        if f.underlineStyle() == QtGui.QTextCharFormat.NoUnderline:
-            f.setUnderlineStyle(QtGui.QTextCharFormat.SingleUnderline)
-        else:
-            f.setUnderlineStyle(QtGui.QTextCharFormat.NoUnderline)
-        cls.active_item().set_format(f)
-
-    @classmethod
-    def strikethrough_text(cls):
-        f = cls.active_item().get_format()
-        if f.fontStrikeOut():
-            f.setFontStrikeOut(False)
-        else:
-            f.setFontStrikeOut(True)
-        cls.active_item().set_format(f)
-
-    @classmethod
-    def resize_text(cls, size: float):
-        f = cls.active_item().get_format()
-        font = f.font()
-        font.setPointSize(size)
-        f.setFont(font)
-        cls.active_item().set_format(f)
-
-    @classmethod
-    def justify_text(cls, alignment):
-        item = cls.active_item()
-        item.setAlignment(alignment)
-
-    @classmethod
-    def color_text(cls, color: QtGui.QColor):
-        brush = QtGui.QBrush(color)
-        f = cls.active_item().get_format()
-        f.setForeground(brush)
-        cls.active_item().set_format(f)
-
-    @classmethod
-    def color_text_bg(cls, color: QtGui.QColor):
-        brush = QtGui.QBrush(color)
-        f = cls.active_item().get_format()
-        f.setBackground(brush)
-        cls.active_item().set_format(f)
-
-    @classmethod
-    def format_text_family(cls, family: str):
-        fmt = cls.active_item().get_format()
-        font = fmt.font()
-        font.setFamily(family)
-        fmt.setFont(font)
-        cls.active_item().set_format(fmt)
-
-    @classmethod
-    def bullet_text(cls):
-        """ convert selected text into a bulletted list. Or, if no text selected, start a new bulleted list """
-        l_format = QtGui.QTextListFormat()
-        l_format.setStyle(l_format.ListDisc)
-        cls.active_item().convert_to_list(l_format)
-
-    @classmethod
-    def number_text(cls):
-        """ start a numbered list. Numbered technically just means ordered, so sub-lists could be alpha or roman """
-        l_format = QtGui.QTextListFormat()
-        l_format.setStyle(l_format.ListDecimal)
-        cls.active_item().convert_to_list(l_format)
-
-    @classmethod
-    def format_text_code(cls):
-        """ This is basically a shortcut to format some text to be monospace. In the future, more features may be added
-        like support for syntax highlighting, or contrasting background color """
-        fmt = cls.active_item().get_format()
-        font = fmt.font()
-        font.setFamily("Liberation Mono")
-        font.setKerning(False)
-        fmt.setFont(font)
-        # set tab stop to be no stupidly huge like the default. Unfortunately, this is global for the TextEdit
-        # so there might be merit (including in some special bg/color formatting) to making code a discrete TextEdit
-        # TODO make this save... probably needs to be a different type of item
-        tab_stop = int(G_QSETTINGS.value("code/tabstop", "4"))
-        cls.active_item().setTabStopWidth(tab_stop * QtGui.QFontMetrics(font).width(" "))
-        cls.active_item().set_format(fmt)
-
-    @classmethod
-    def insert_checkbox(cls):
-        cursor = cls.active_item().textCursor()
-        html = "<input type='checkbox' />"
-        if cursor.selectedText() != "":
-            html += cursor.selectedText()
-        cls.active_item().insertHtml(html)
-
-    def convert_to_list(self, format: QtGui.QTextListFormat):
-        # TODO support automatic nested lists converting formats as needed (numerals to alpha to roman, etc)
-        cursor = self.textCursor()
-        if cursor.selectedText() != "":
-            cursor.createList(format)
-        else:
-            cursor.insertList(format)
-
     def get_format(self) -> QtGui.QTextCharFormat:
         cursor = self.textCursor()
         if cursor.selectedText() != "":
@@ -417,6 +296,199 @@ class PageTextEdit(QtWidgets.QTextEdit, SaveMixin):
             cursor.setCharFormat(fmt)
         else:
             self.setCurrentCharFormat(fmt)
+
+    @classmethod
+    def bold_text(cls):
+        if cls.active_item().__class__ != cls:  # Don't process signals to items that aren't us
+            return
+        f = cls.active_item().get_format()
+        if f.fontWeight() == 75:
+            f.setFontWeight(50)
+        else:
+            f.setFontWeight(75)
+        cls.active_item().set_format(f)
+
+    @classmethod
+    def italicize_text(cls):
+        if cls.active_item().__class__ != cls:  # Don't process signals to items that aren't us
+            return
+        f = cls.active_item().get_format()
+        if f.fontItalic():
+            f.setFontItalic(False)
+        else:
+            f.setFontItalic(True)
+        cls.active_item().set_format(f)
+
+    @classmethod
+    def underline_text(cls):
+        if cls.active_item().__class__ != cls:  # Don't process signals to items that aren't us
+            return
+        f = cls.active_item().get_format()
+        if f.underlineStyle() == QtGui.QTextCharFormat.NoUnderline:
+            f.setUnderlineStyle(QtGui.QTextCharFormat.SingleUnderline)
+        else:
+            f.setUnderlineStyle(QtGui.QTextCharFormat.NoUnderline)
+        cls.active_item().set_format(f)
+
+    @classmethod
+    def strikethrough_text(cls):
+        if cls.active_item().__class__ != cls:  # Don't process signals to items that aren't us
+            return
+        f = cls.active_item().get_format()
+        if f.fontStrikeOut():
+            f.setFontStrikeOut(False)
+        else:
+            f.setFontStrikeOut(True)
+        cls.active_item().set_format(f)
+
+    @classmethod
+    def resize_text(cls, size: float):
+        if cls.active_item().__class__ != cls:  # Don't process signals to items that aren't us
+            return
+        f = cls.active_item().get_format()
+        font = f.font()
+        font.setPointSize(size)
+        f.setFont(font)
+        cls.active_item().set_format(f)
+
+    @classmethod
+    def justify_text(cls, alignment):
+        if cls.active_item().__class__ != cls:  # Don't process signals to items that aren't us
+            return
+        item = cls.active_item()
+        item.setAlignment(alignment)
+
+    @classmethod
+    def color_text(cls, color: QtGui.QColor):
+        if cls.active_item().__class__ != cls:  # Don't process signals to items that aren't us
+            return
+        brush = QtGui.QBrush(color)
+        f = cls.active_item().get_format()
+        f.setForeground(brush)
+        cls.active_item().set_format(f)
+
+    @classmethod
+    def color_text_bg(cls, color: QtGui.QColor):
+        if cls.active_item().__class__ != cls:  # Don't process signals to items that aren't us
+            return
+        brush = QtGui.QBrush(color)
+        f = cls.active_item().get_format()
+        f.setBackground(brush)
+        cls.active_item().set_format(f)
+
+    @classmethod
+    def format_text_family(cls, family: str):
+        if cls.active_item().__class__ != cls:  # Don't process signals to items that aren't us
+            return
+        fmt = cls.active_item().get_format()
+        font = fmt.font()
+        font.setFamily(family)
+        fmt.setFont(font)
+        cls.active_item().set_format(fmt)
+
+    @classmethod
+    def bullet_text(cls):
+        """ convert selected text into a bulletted list. Or, if no text selected, start a new bulleted list """
+        if cls.active_item().__class__ != cls:  # Don't process signals to items that aren't us
+            return
+        l_format = QtGui.QTextListFormat()
+        l_format.setStyle(l_format.ListDisc)
+        cls.active_item().convert_to_list(l_format)
+
+    @classmethod
+    def number_text(cls):
+        """ start a numbered list. Numbered technically just means ordered, so sub-lists could be alpha or roman """
+        if cls.active_item().__class__ != cls:  # Don't process signals to items that aren't us
+            return
+        l_format = QtGui.QTextListFormat()
+        l_format.setStyle(l_format.ListDecimal)
+        cls.active_item().convert_to_list(l_format)
+
+    @classmethod
+    def format_text_code(cls):
+        """ Change the parent's contents to this item's contents as a code item """
+        if cls.active_item().__class__ != cls:  # Don't process signals to items that aren't us
+            return
+        cls.active_item().parent().convert_contents("code")
+
+    @classmethod
+    def insert_checkbox(cls):
+        """ convert this text content into a check box item """
+        if cls.active_item().__class__ != cls:  # Don't process signals to items that aren't us
+            return
+
+
+class PageTextEdit(PageTextContent):
+    """ Rich text content, for displaying a wide variety of text styles """
+
+    @classmethod
+    def _connect_format_signals(cls):
+        if cls._connected:
+            return
+        cls._connected = True
+        G_FORMAT_SIGNALLER.underlined.connect(cls.underline_text)
+        G_FORMAT_SIGNALLER.bolded.connect(cls.bold_text)
+        G_FORMAT_SIGNALLER.italicized.connect(cls.italicize_text)
+        G_FORMAT_SIGNALLER.struckthrough.connect(cls.strikethrough_text)
+        G_FORMAT_SIGNALLER.sized.connect(cls.resize_text)
+        G_FORMAT_SIGNALLER.justified.connect(cls.justify_text)
+        G_FORMAT_SIGNALLER.background_colored.connect(cls.color_text_bg)
+        G_FORMAT_SIGNALLER.foreground_colored.connect(cls.color_text)
+        G_FORMAT_SIGNALLER.code_formatted.connect(cls.format_text_code)
+        G_FORMAT_SIGNALLER.family_formatted.connect(cls.format_text_family)
+        G_FORMAT_SIGNALLER.bulleted.connect(cls.bullet_text)
+        G_FORMAT_SIGNALLER.numbered.connect(cls.number_text)
+        G_FORMAT_SIGNALLER.checkbox_inserted.connect(cls.insert_checkbox)
+
+    def convert_to_list(self, format: QtGui.QTextListFormat):
+        # TODO support automatic nested lists converting formats as needed (numerals to alpha to roman, etc)
+        cursor = self.textCursor()
+        if cursor.selectedText() != "":
+            cursor.createList(format)
+        else:
+            cursor.insertList(format)
+
+
+class PageCodeEditItem(PageTextContent):
+    """ For displaying text as source code, strict monospacing, standard color schemes and indentation """
+
+    def __init__(self, initial_text: str):
+        super().__init__(initial_text)
+        self.setStyleSheet("""
+                    PageCodeEditItem {{
+                        background-color: {};
+                        border: 1px solid {};
+                    }}
+                    PageCodeEditItem::focus {{
+                        background-color: {};
+                    }}
+                    """.format(EDIT_CODE_BG, ITEM_BORDER_COLOR, EDIT_CODE_FOCUS_BG)
+        )
+
+        cursor = self.textCursor()
+        self.selectAll()
+        self.setFontFamily("DejaVu Sans Mono")
+        self.setTextCursor(cursor)
+        font = self.font()
+        # set tab stop to be no stupidly huge like the default. Unfortunately, this is global for the TextEdit
+        # so there might be merit (including in some special bg/color formatting) to making code a discrete TextEdit
+        tab_stop = int(G_QSETTINGS.value("code/tabstop", "4"))
+        self.setTabStopWidth(tab_stop * QtGui.QFontMetrics(font).width(" "))
+
+    def set_format(self, fmt: QtGui.QTextCharFormat):
+        cur = self.textCursor()
+        self.selectAll()
+        self.setCurrentCharFormat(fmt)
+        self.setTextCursor(cur)
+        tab_stop = int(G_QSETTINGS.value("code/tabstop", "4"))
+        self.setTabStopWidth(tab_stop * QtGui.QFontMetrics(fmt.font()).width(" "))
+
+    @classmethod
+    def _connect_format_signals(cls):
+        if cls._connected:
+            return
+        cls._connected = True
+        G_FORMAT_SIGNALLER.sized.connect(cls.resize_text)
 
 
 class PageItemSurround(QtWidgets.QLabel):

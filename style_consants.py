@@ -1,6 +1,10 @@
 
 EDIT_TEXT_FOCUS_BG = "#fff"
 
+EDIT_CODE_FOCUS_BG = "#e3eaee"
+
+EDIT_CODE_BG = "#d3daea"
+
 PAGE_BG = "#ffe"
 
 ITEM_BORDER_COLOR = "#bbe"

@@ -57,12 +57,14 @@ class TextFormatPalette(QToolBar):
         self.addAction(self._justr_action, "right")
         self.addSeparator()
 
-        self._code_action = QIcon.fromTheme("format-text-code")
-        self.addAction(self._code_action, "code")
         self._bullet_action = QIcon.fromTheme("format-list-unordered")
         self.addAction(self._bullet_action, "bullet")
         self._number_action = QIcon.fromTheme("format-list-ordered")
         self.addAction(self._number_action, "numbered")
+        self.addSeparator()
+        # the following convert regular text items into special text items
+        self._code_action = QIcon.fromTheme("format-text-code")
+        self.addAction(self._code_action, "source code")
         self._check_action = QIcon.fromTheme("checkbox")
         self.addAction(self._check_action, "check")
         self.addSeparator()
@@ -90,7 +92,7 @@ class TextFormatPalette(QToolBar):
         self.family_label.setMaximumWidth(40)
         self.addWidget(self.family_label)
         self.family_menu = QComboBox()
-        self.family_menu.setMaximumWidth(120)
+        self.family_menu.setMaximumWidth(180)
         self._fonts = {}  # dict for fast lookups
         for i, each in enumerate(QFontDatabase().families()):
             font = self.family_menu.font()
@@ -134,7 +136,7 @@ class TextFormatPalette(QToolBar):
             self._justify_left()
         elif action == "center":
             self._justify_center()
-        elif action == "code":
+        elif action == "source code":
             G_FORMAT_SIGNALLER.code_formatted.emit()
         elif action == "bullet":
             G_FORMAT_SIGNALLER.bulleted.emit()
