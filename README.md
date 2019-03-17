@@ -51,5 +51,7 @@ or even a playing GIF. Items can be renamed (mostly pointless for now, but will 
 Changes are saved automatically every 3 seconds after a change occurs. This is debounced so it doesn't occur every single change if they occur
 in quick succession. Currently, there is no way to save on-demand (will be added when normal menus are added).
 
-Here is a screenshot of the apearance, a few commits back, on Linux:
-![Linux Screenshot](screenshots/freenote_sample.gif)
+Here is a screenshot of the appearance and functionality, a few commits back, on Linux:
+![Linux GIF](screenshots/freenote_sample.gif)
+And the current appearance, as of now, on Linux:
+![Linux Screenshot](screenshots/linux_sample.png)
