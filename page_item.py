@@ -6,7 +6,7 @@ from text_format_palette import G_FORMAT_SIGNALLER
 from threading import Timer
 from image_page_item import PageImageItem
 from utilities.rename_dialog import RenameableMixin
-from utilities.settings import G_QSETTINGS
+from utilities.settings import settings
 
 
 class PageItem(SaveMixin, QtWidgets.QWidget, RenameableMixin):
@@ -39,7 +39,7 @@ class PageItem(SaveMixin, QtWidgets.QWidget, RenameableMixin):
                 pos.setHeight(self._contents.height + self._non_content_height())
             try:
                 # Let the user customize how often a resize of the image is done when resizing the item container
-                timeout = int(G_QSETTINGS.value("application/interval_image_resize", "0.05"))
+                timeout = settings.img_resize_interval
             except ValueError:
                 timeout = 0.05
             self._resize_debouncer = Debouncer(timeout=timeout)
@@ -472,7 +472,7 @@ class PageCodeEditItem(PageTextContent):
         font = self.font()
         # set tab stop to be no stupidly huge like the default. Unfortunately, this is global for the TextEdit
         # so there might be merit (including in some special bg/color formatting) to making code a discrete TextEdit
-        tab_stop = int(G_QSETTINGS.value("code/tabstop", "4"))
+        tab_stop = settings.tabstop
         self.setTabStopWidth(tab_stop * QtGui.QFontMetrics(font).width(" "))
 
     def set_format(self, fmt: QtGui.QTextCharFormat):
@@ -480,7 +480,7 @@ class PageCodeEditItem(PageTextContent):
         self.selectAll()
         self.setCurrentCharFormat(fmt)
         self.setTextCursor(cur)
-        tab_stop = int(G_QSETTINGS.value("code/tabstop", "4"))
+        tab_stop = settings.tabstop
         self.setTabStopWidth(tab_stop * QtGui.QFontMetrics(fmt.font()).width(" "))
 
     @classmethod

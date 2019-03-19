@@ -3,7 +3,7 @@ from section import Section
 from oyaml import load, dump
 from utilities.toaster import ToasterMixin
 from utilities.rename_dialog import RenameableMixin
-from utilities.settings import G_QSETTINGS
+from utilities.settings import settings
 from string import ascii_uppercase
 from style_consants import *
 
@@ -80,7 +80,7 @@ class Notebook(QTabWidget, ToasterMixin, RenameableMixin):
 
     @staticmethod
     def _shorten_name(name):
-        max_len = int(G_QSETTINGS.value("application/maximum_tab_display_length", "16")) + 8
+        max_len = settings.tab_text_length + 8
         if len(name) > max_len + 3:  # don't truncate name if adding ellipses will make it the same length
             return name[8:max_len] + "..."
         return name[8:]

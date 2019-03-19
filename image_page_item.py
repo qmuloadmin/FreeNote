@@ -2,7 +2,7 @@ from PySide2 import QtWidgets, QtGui, QtCore
 from utilities.save_mixin import SaveMixin
 from os import chdir, getcwd, remove
 from urllib.request import urlopen
-from utilities.settings import Settings
+from utilities.settings import settings
 from os.path import exists, join
 import uuid
 
@@ -23,7 +23,7 @@ class PageImageItem(QtWidgets.QLabel, SaveMixin):
         # set our working directory to the asset directory
         # URLs for files dragged in should be absolute anyway and not affected.
         old_wd = getcwd()
-        chdir(Settings.asset_dir)
+        chdir(settings.asset_dir)
         data = urlopen(img_url).read()
         chdir(old_wd)
         self.setStyleSheet("background: transparent;")
@@ -89,7 +89,7 @@ class PageImageItem(QtWidgets.QLabel, SaveMixin):
 
     @property
     def asset_file_fq(self):
-        return join(Settings.asset_dir, self.asset_file)
+        return join(settings.asset_dir, self.asset_file)
 
     def _toggle_movie_play(self):
         if self._movie.state() == self._movie.Running:

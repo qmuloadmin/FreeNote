@@ -3,10 +3,10 @@
 import sys
 from PySide2.QtWidgets import QWidget, QMessageBox, QApplication, QFileDialog, QVBoxLayout, QMainWindow, QMenu, QAction
 from PySide2.QtWidgets import QInputDialog, QLineEdit
-from PySide2.QtGui import QIcon
+from PySide2.QtGui import QIcon, QCloseEvent
 from binder import Binder
 from text_format_palette import TextFormatPalette
-from utilities.settings import Settings, G_QSETTINGS
+from utilities.settings import settings
 from utilities.debounce import g_save_debouncer
 from os import environ, path
 
@@ -72,7 +72,7 @@ class MainWindow(QMainWindow):
 
     def show(self):
         super().show()
-        if not path.isdir(Settings.workspace_dir):
+        if settings.workspace_dir is None:
             input = QMessageBox(self).question(self, "FreeNote Workspace",
                                                "No FreeNote Workspace was found. Would you like to create one now?",
                                                QMessageBox.Yes, QMessageBox.No)
@@ -85,54 +85,61 @@ class MainWindow(QMainWindow):
                 form.fileSelected.connect(self._set_workspace_from_dialog)
                 form.open()
         else:
-            self._content.show()
+            if "FREENOTE_WORKSPACE_DIR" in environ:
+                self._content.show(environ["FREENOTE_WORKSPACE_DIR"])
+            else:
+                self._content.show()
+
+    def _set_workspace_from_dialog(self, dir: str):
+        settings.workspace_dir = dir
+        self._content.show()
+
+    def closeEvent(self, event: QCloseEvent):
+        # catch before the window closes and store some settings to be restored on next run
+        size = self.size()
+        settings.window_height = size.height()
+        settings.window_width = size.width()
+        super().closeEvent(event)
 
 
 class ContentWidget(QWidget):
     """ The main, central widget for the QMainWindow. Most widgets are a child of this one. """
 
-    def __init__(self, parent, workspace=None):
+    def __init__(self, parent):
         super().__init__(parent)
-        # Initialize settings first
-        # Set the workspace, if not provided
-        if workspace is None:
-            if "FREENOTE_WORKSPACE_DIR" in environ:
-                workspace = environ["FREENOTE_WORKSPACE_DIR"]
-            else:
-                workspace = G_QSETTINGS.value("workspace/dir", "")
-        Settings.workspace_dir = workspace
-        Settings.asset_dir = G_QSETTINGS.value("workspace/asset_path", Settings.workspace_dir)
-
-        # Set the currently running application's directory, for convenience
-        Settings.application_dir = __file__.replace("main.py", "")
-        icon_dir = G_QSETTINGS.value("application/icon_path", path.join(Settings.application_dir, "icons"))
-
-        # Initialize QIcon search paths and themes
-        search_paths = QIcon.themeSearchPaths()
-        search_paths.append(icon_dir)
-        QIcon.setThemeSearchPaths(search_paths)
-        if QIcon.themeName() == "":
-            QIcon.setThemeName(Settings.fallback_theme_name)
-
         self.lo = QVBoxLayout()
         self.binder = Binder()
         # Allow the user to disable auto save
-        autosave = G_QSETTINGS.value("application/autosave", True)
-        if autosave:
+        if settings.auto_save:
             g_save_debouncer.action = self.binder.save
-
-    def _set_workspace_from_dialog(self, dir: str):
-        Settings.workspace_dir = dir
-        G_QSETTINGS.setValue("workspace/dir", dir)
-        self._show_layout()
 
     def _show_layout(self):
         self.binder.load_workspace()
         self.lo.addWidget(self.binder)
         self.setLayout(self.lo)
 
-    def show(self):
+    def show(self, workspace=None):
         super().show()
+        # Initialize settings first
+        # Set the workspace, if not provided
+        if workspace is not None:
+            settings.override("workspace_dir", workspace)
+
+        if settings.asset_dir is None:
+            settings.override("asset_dir", settings.workspace_dir)
+
+        # Set the currently running application's directory, for convenience
+        settings.application_dir = __file__.replace("main.py", "")
+        icon_dir = settings.icon_path
+        if icon_dir is None:
+            icon_dir = path.join(settings.application_dir, "icons")
+
+        # Initialize QIcon search paths and themes
+        search_paths = QIcon.themeSearchPaths()
+        search_paths.append(icon_dir)
+        QIcon.setThemeSearchPaths(search_paths)
+        if QIcon.themeName() == "":
+            QIcon.setThemeName(settings.fallback_theme_name)
         self._show_layout()
 
 
@@ -140,7 +147,7 @@ if __name__ == "__main__":
     app = QApplication([])
     app.setApplicationName("Free Note")
     window = MainWindow()
-    window.resize(1000, 800)
+    window.resize(settings.window_width, settings.window_height)
     window.show()
 
     sys.exit(app.exec_())

@@ -1,5 +1,5 @@
 from PySide2.QtWidgets import QTabWidget
-from utilities.settings import G_QSETTINGS, Settings
+from utilities.settings import G_QSETTINGS, settings
 from utilities.rename_dialog import RenameableMixin
 from notebook import Notebook
 from os import path, listdir, rename
@@ -39,8 +39,8 @@ class Binder(QTabWidget, RenameableMixin):
             notebook = self.notebooks[index]
             self.ids.remove(notebook.id)
             rename(
-                path.join(Settings.workspace_dir, "notebook-{}.fnbook".format(notebook.id)),
-                path.join(Settings.workspace_dir, "notebook-{}.fnbook".format(new_id))
+                path.join(settings.workspace_dir, "notebook-{}.fnbook".format(notebook.id)),
+                path.join(settings.workspace_dir, "notebook-{}.fnbook".format(new_id))
             )
             self.ids.add(new_id)
             notebook.id = new_id
@@ -50,9 +50,9 @@ class Binder(QTabWidget, RenameableMixin):
 
     def load_workspace(self):
         self._just_loaded = True
-        for each in listdir(Settings.workspace_dir):
+        for each in listdir(settings.workspace_dir):
             if each.endswith(".fnbook"):
-                notebook = Notebook.from_file(path.join(Settings.workspace_dir, each))
+                notebook = Notebook.from_file(path.join(settings.workspace_dir, each))
                 self._add_notebook(notebook)
         if len(self.notebooks) == 0:
             # Append a starting notebook
@@ -78,5 +78,5 @@ class Binder(QTabWidget, RenameableMixin):
             return
         G_QSETTINGS.sync()
         for each in self.notebooks:
-            filename = path.join(Settings.workspace_dir, "notebook-{}.fnbook".format(each.id))
+            filename = path.join(settings.workspace_dir, "notebook-{}.fnbook".format(each.id))
             each.save(filename)
