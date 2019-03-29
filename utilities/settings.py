@@ -14,6 +14,7 @@ class Setting:
         self.key = ""
         self.description = ""
         self.value = None
+        self.name = ""
 
 
 def setting(key: str, type_: Callable, default=None):
@@ -25,6 +26,7 @@ def setting(key: str, type_: Callable, default=None):
 
     def decorator(f):
         setting.description = f.__doc__
+        setting.name = f.__name__
 
         @property
         def prop(self):
@@ -35,6 +37,9 @@ def setting(key: str, type_: Callable, default=None):
                 return setting.value
             val = G_QSETTINGS.value(setting.key, default)
             if val is not None:
+                # Little hack to make ints (which are stored as strings) correctly cast to bools
+                if setting.type == bool:
+                    val = int(val)
                 return setting.type(val)
             return None
 
@@ -63,6 +68,9 @@ class _Settings:
     def __getitem__(self, item):
         return self.settings[item]
 
+    def keys(self):
+        return self.settings.keys()
+
     @setting("workspace/dir", str)
     def workspace_dir(self):
         """ The directory where the notebooks and asset files for the running application should saved and loaded"""
@@ -77,8 +85,7 @@ class _Settings:
 
     @setting("application/icons/path", str)
     def icon_path(self):
-        """ The path where icon themes should be loaded from.
-        This should usually be left empty unless you know what you're doing. """
+        """ The path where icon themes should be loaded from. This should usually be left empty unless you know what you're doing. """
 
     @setting("application/maximum_tab_display_len", int, 16)
     def tab_text_length(self):
@@ -99,6 +106,10 @@ class _Settings:
     @setting("restore/window/width", int, 1000)
     def window_width(self):
         """ the last width of the application window on close """
+
+    @setting("code/font", str, "DejaVu Sans Mono")
+    def code_font(self):
+        """ The font family to use to display code in code items """
 
     # the directory where the application itself (python scripts, icons, etc) resides. Does not store to file
     application_dir = ""

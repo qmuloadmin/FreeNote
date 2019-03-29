@@ -467,7 +467,7 @@ class PageCodeEditItem(PageTextContent):
 
         cursor = self.textCursor()
         self.selectAll()
-        self.setFontFamily("DejaVu Sans Mono")
+        self.setFontFamily(settings.code_font)
         self.setTextCursor(cursor)
         font = self.font()
         # set tab stop to be no stupidly huge like the default. Unfortunately, this is global for the TextEdit

@@ -6,6 +6,7 @@ from PySide2.QtWidgets import QInputDialog, QLineEdit
 from PySide2.QtGui import QIcon, QCloseEvent
 from binder import Binder
 from text_format_palette import TextFormatPalette
+from settings import SettingsDialog
 from utilities.settings import settings
 from utilities.debounce import g_save_debouncer
 from os import environ, path
@@ -33,7 +34,7 @@ class MainWindow(QMainWindow):
         menu.addSeparator()
         menu.addAction("&Save")
         menu.addSeparator()
-        menu.addAction("Settings")  # TODO add support for setting all the workspace and application settings
+        menu.addAction("S&ettings")  # TODO add support for setting all the workspace and application settings
         menu.addSeparator()
         menu.addAction("Exit")
         return menu
@@ -69,6 +70,8 @@ class MainWindow(QMainWindow):
             QMessageBox.about(self, "FreeNote",
                               "Free Note is note taking software, developed by Zach Bullough. "
                               "For more information, please visit github.com/qmuloadmin/freenote")
+        elif action.text() == "S&ettings":
+            SettingsDialog(self).show()
 
     def show(self):
         super().show()
