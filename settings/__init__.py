@@ -1,5 +1,7 @@
 from PySide2.QtCore import QSettings
 from typing import Callable, Any
+from .password import Password
+
 
 G_QSETTINGS = QSettings("Qmulosoft", "FreeNote")
 
@@ -56,6 +58,10 @@ class _Settings:
 
     def __init__(self):
         self.settings = dict()
+        # initialize the settings dict by reading from each setting at initialization
+        # TODO this is really hacky and we need a better solution
+        for each in self.__dir__():
+            getattr(self, each)
 
     def override(self, prop: str, value: Any):
         """ given a particular property by name, override the local value to not read from setting store.
@@ -110,6 +116,30 @@ class _Settings:
     @setting("code/font", str, "DejaVu Sans Mono")
     def code_font(self):
         """ The font family to use to display code in code items """
+
+    @setting("git/enabled", bool, False)
+    def git_enabled(self):
+        """ If git version control is installed, use git to allow reverting to arbitrary versions """
+
+    @setting("git/commit_frequency", int, 5)
+    def git_commit_frq(self):
+        """ If git is enabled, commit changes every N saves """
+
+    @setting("git/remote_repository", str, "")
+    def git_remote(self):
+        """ If specified, push commits to this repository """
+
+    @setting("git/push_frequency", int, 1)
+    def git_push_frq(self):
+        """ If configured to push commits to remote repo, push every N commits """
+
+    @setting("git/username", str, "")
+    def git_username(self):
+        """ The username (if any) required to push to the remote git repository """
+
+    @setting("git/password", Password, "")
+    def git_password(self):
+        """ The password (if any) required to push to the remote git repository """
 
     # the directory where the application itself (python scripts, icons, etc) resides. Does not store to file
     application_dir = ""

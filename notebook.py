@@ -3,7 +3,7 @@ from section import Section
 from oyaml import load, dump
 from utilities.toaster import ToasterMixin
 from utilities.rename_dialog import RenameableMixin
-from utilities.settings import settings
+from settings.__init__ import settings
 from string import ascii_uppercase
 from style_consants import *
 

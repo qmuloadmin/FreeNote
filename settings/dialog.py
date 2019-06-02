@@ -1,5 +1,6 @@
 from PySide2 import QtWidgets, QtGui, QtCore
-from utilities.settings import settings
+from . import settings
+from .mixins import CustomSettingsWidgetMixin
 
 
 class SettingsDialog(QtWidgets.QDialog):
@@ -20,6 +21,7 @@ class SettingsDialog(QtWidgets.QDialog):
             if key in self._categories:
                 self._categories[key].append(val)
             else:
+                print(key)
                 self._categories[key] = [val]
         for category in self._categories:
             self._listview.addItem(category)
@@ -27,13 +29,14 @@ class SettingsDialog(QtWidgets.QDialog):
         # Render the first, currently selected settings when the dialog opens
         self._listview.setCurrentRow(0)
         current = self._listview.currentItem()
-        self._listview.itemClicked.connect(self._change_category)
+        self._listview.currentRowChanged.connect(self._change_category)
         self._selected_settings = CategorySettings(self, self._categories[current.text()])
         self._lo.addWidget(self._selected_settings)
         self.setLayout(self._lo)
 
-    def _change_category(self, list_item: QtWidgets.QWidget):
+    def _change_category(self, index: int):
         """ called whenever an item in the menu is selected to change settings categories """
+        list_item = self._listview.item(index)
         self._listview.setCurrentItem(list_item)
         self._lo.removeWidget(self._selected_settings)
         self._selected_settings.deleteLater()
@@ -55,7 +58,10 @@ class CategorySettings(QtWidgets.QWidget):
             info = QtWidgets.QLabel()
             info.setPixmap(icon.pixmap(12, 12))
             info.setToolTip(setting.description)
-            if setting.type == str or setting.type == int or setting.type == float:
+            if issubclass(setting.type, CustomSettingsWidgetMixin):
+                value = setting.type.settings_widget(getattr(settings, setting.name), self)
+                value.editingFinished.connect(lambda setting=setting, value=value: self._update_setting(setting.name, value.text()))
+            elif setting.type == str or setting.type == int or setting.type == float:
                 value = QtWidgets.QLineEdit(str(getattr(settings, setting.name)), self)
                 value.editingFinished.connect(lambda setting=setting, value=value: self._update_setting(setting.name, value.text()))
             elif setting.type == bool:

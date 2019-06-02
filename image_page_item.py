@@ -2,7 +2,7 @@ from PySide2 import QtWidgets, QtGui, QtCore
 from utilities.save_mixin import SaveMixin
 from os import chdir, getcwd, remove
 from urllib.request import urlopen
-from utilities.settings import settings
+from settings.__init__ import settings
 from os.path import exists, join
 import uuid
 

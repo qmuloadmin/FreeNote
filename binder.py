@@ -1,5 +1,5 @@
 from PySide2.QtWidgets import QTabWidget
-from utilities.settings import G_QSETTINGS, settings
+from settings.__init__ import G_QSETTINGS, settings
 from utilities.rename_dialog import RenameableMixin
 from notebook import Notebook
 from os import path, listdir, rename

@@ -6,7 +6,7 @@ from text_format_palette import G_FORMAT_SIGNALLER
 from threading import Timer
 from image_page_item import PageImageItem
 from utilities.rename_dialog import RenameableMixin
-from utilities.settings import settings
+from settings.__init__ import settings
 
 
 class PageItem(SaveMixin, QtWidgets.QWidget, RenameableMixin):
@@ -224,7 +224,7 @@ class PageItem(SaveMixin, QtWidgets.QWidget, RenameableMixin):
         super().deleteLater()
 
 
-class PageTextContent(QtWidgets.QTextEdit, SaveMixin):
+class PageTextContent(QtWidgets.QTextBrowser, SaveMixin):
     """ Super class of all text-based item types."""
     # _active_item tracks, statically, which Item currently has focus. This is for receiving text format signals
     # from the global text formatter.
@@ -232,7 +232,9 @@ class PageTextContent(QtWidgets.QTextEdit, SaveMixin):
     _connected = False
 
     def __init__(self, initial_text=""):
-        super().__init__(initial_text)
+        super().__init__()
+        self.setHtml(initial_text)
+        self.setReadOnly(False)
         self.delete_timer = Timer(5, self.deleteLater)
         self.setStyleSheet("""
             QTextEdit {{

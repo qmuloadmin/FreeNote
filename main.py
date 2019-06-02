@@ -6,8 +6,8 @@ from PySide2.QtWidgets import QInputDialog, QLineEdit
 from PySide2.QtGui import QIcon, QCloseEvent
 from binder import Binder
 from text_format_palette import TextFormatPalette
-from settings import SettingsDialog
-from utilities.settings import settings
+from settings.dialog import SettingsDialog
+from settings.__init__ import settings
 from utilities.debounce import g_save_debouncer
 from os import environ, path
 
