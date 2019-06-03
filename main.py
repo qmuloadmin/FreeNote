@@ -34,7 +34,7 @@ class MainWindow(QMainWindow):
         menu.addSeparator()
         menu.addAction("&Save")
         menu.addSeparator()
-        menu.addAction("S&ettings")  # TODO add support for setting all the workspace and application settings
+        menu.addAction("S&ettings")
         menu.addSeparator()
         menu.addAction("Exit")
         return menu

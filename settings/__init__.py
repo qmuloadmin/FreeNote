@@ -89,6 +89,10 @@ class _Settings:
     def auto_save(self):
         """ Turn on or off the application auto save functionality"""
 
+    @setting("application/autosave_interval", float, 3)
+    def auto_save_interval(self):
+        """  """
+
     @setting("application/icons/path", str)
     def icon_path(self):
         """ The path where icon themes should be loaded from. This should usually be left empty unless you know what you're doing. """

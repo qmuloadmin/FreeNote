@@ -21,7 +21,6 @@ class SettingsDialog(QtWidgets.QDialog):
             if key in self._categories:
                 self._categories[key].append(val)
             else:
-                print(key)
                 self._categories[key] = [val]
         for category in self._categories:
             self._listview.addItem(category)

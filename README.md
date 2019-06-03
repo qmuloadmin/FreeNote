@@ -48,8 +48,8 @@ You can click anywhere and start typing, format the text, move any item around o
 Bulk selection and dragging will be added later. Items can be sent to the back and brought to the front so text can lay over an image,
 or even a playing GIF. Items can be renamed (mostly pointless for now, but will be useful for linking later).
 
-Changes are saved automatically every 3 seconds after a change occurs. This is debounced so it doesn't occur every single change if they occur
-in quick succession. Currently, there is no way to save on-demand (will be added when normal menus are added).
+Changes are saved automatically every 3 seconds after a change occurs. This time period can be customized in settings. 
+This is debounced so it doesn't occur every single change if they occur in quick succession. 
 
 Here is a screenshot of the appearance and functionality, a few commits back, on Linux:
 ![Linux GIF](screenshots/freenote_sample.gif)
