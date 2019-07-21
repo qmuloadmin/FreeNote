@@ -1,6 +1,8 @@
 from PySide2.QtCore import QSettings
 from typing import Callable, Any
 from .password import Password
+import subprocess
+from os import getcwd, chdir
 
 
 G_QSETTINGS = QSettings("Qmulosoft", "FreeNote")
@@ -17,14 +19,40 @@ class Setting:
         self.description = ""
         self.value = None
         self.name = ""
+        self._validator = None
+
+    def validate(self, value) -> bool:
+        if self._validator is None:
+            try:
+                self.type(value)
+            except ValueError as e:
+                raise ValidationError(e)
+            return True
+        return self._validator(value)
 
 
-def setting(key: str, type_: Callable, default=None):
-    """ A decorator to turn a class field into a singleton, with getter and setter properties built automatically """
+def setting(key: str, type_: Callable, default=None, validate=None):
+    """ A decorator to turn a class field into a singleton, with getter and setter properties built automatically
+    Notes on usage, as this can be a bit confusing (but is hopefully worth it for how easy it is to add new settings):
+
+    Using the global settings (_Settings) object, getting attributes will fetch the Setting.value,
+        e.g. getattr(settings, 'foo') would return a string value if foo was defined like so:
+        @setting('/settings/foo', str)
+        def foo(self):
+            ...
+        as the type of foo is defined as str.
+    Getting indexes (dict-style) will return the Setting object itself, so you can access attributes.
+        e.g. settings['foo'].validate("some string")
+
+    While this is confusing, attributes are rarely needed (only validation) externally, and being able to just get
+    the value of a setting based on attribute lookup is extremely convenient.
+    """
     setting = Setting()
     setting.key = key
     setting.type = type_
     setting.value = None
+    if validate is not None:
+        setting._validator = validate
 
     def decorator(f):
         setting.description = f.__doc__
@@ -50,6 +78,19 @@ def setting(key: str, type_: Callable, default=None):
             G_QSETTINGS.setValue(setting.key, v)
         return prop
     return decorator
+
+
+def validate_enable_git(value: bool):
+    """ Ensure that git is installed and initialize if set to True """
+    if value:
+        cwd = getcwd()
+        chdir(settings.workspace_dir)
+        with subprocess.Popen(["git", "init"], stderr=subprocess.PIPE) as git:
+            _, stderr = git.communicate()
+            if len(stderr) > 0:
+                raise ValidationError("git failed to initialize. Is it installed?")
+        chdir(cwd)
+    return True
 
 
 class _Settings:
@@ -95,7 +136,8 @@ class _Settings:
 
     @setting("application/icons/path", str)
     def icon_path(self):
-        """ The path where icon themes should be loaded from. This should usually be left empty unless you know what you're doing. """
+        """ The path where icon themes should be loaded from.
+        This should usually be left empty unless you know what you're doing. """
 
     @setting("application/maximum_tab_display_len", int, 16)
     def tab_text_length(self):
@@ -121,7 +163,7 @@ class _Settings:
     def code_font(self):
         """ The font family to use to display code in code items """
 
-    @setting("git/enabled", bool, False)
+    @setting("git/enabled", bool, False, validate=validate_enable_git)
     def git_enabled(self):
         """ If git version control is installed, use git to allow reverting to arbitrary versions """
 
@@ -152,3 +194,16 @@ class _Settings:
 
 
 settings = _Settings()
+
+
+class ValidationError(ValueError):
+    """ Raised by a setting with a custom validator. If validation fails and the user should see an error prompt,
+    this error is raised """
+
+    def __init__(self, value):
+        super().__init__(value)
+        self._value = str(value)
+
+    @property
+    def value(self):
+        return self._value

@@ -1,6 +1,7 @@
 from PySide2 import QtWidgets, QtGui, QtCore
-from . import settings
+from . import settings, ValidationError
 from .mixins import CustomSettingsWidgetMixin
+from typing import Any
 
 
 class SettingsDialog(QtWidgets.QDialog):
@@ -73,6 +74,9 @@ class CategorySettings(QtWidgets.QWidget):
             self._lo.addWidget(row)
         self.setLayout(self._lo)
 
-    @staticmethod
-    def _update_setting(setting, value):
-        setattr(settings, setting, value)
+    def _update_setting(self, setting: str, value: Any):
+        try:
+            if settings[setting].validate(value):
+                setattr(settings, setting, value)
+        except ValidationError as e:
+            QtWidgets.QMessageBox(self).warning(self, "Invalid Setting Value", e.value)
