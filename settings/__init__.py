@@ -85,10 +85,13 @@ def validate_enable_git(value: bool):
     if value:
         cwd = getcwd()
         chdir(settings.workspace_dir)
-        with subprocess.Popen(["git", "init"], stderr=subprocess.PIPE) as git:
-            _, stderr = git.communicate()
+        try:
+            with subprocess.Popen(["git", "init"], stderr=subprocess.PIPE) as git:
+                _, stderr = git.communicate()
             if len(stderr) > 0:
-                raise ValidationError("git failed to initialize. Is it installed?")
+                raise ValidationError("git failed to initialize. Error: {}".format(stderr))
+        except FileNotFoundError:
+            raise ValidationError("git wasn't found on your system; to enable git integration, please install git")
         chdir(cwd)
     return True
 
