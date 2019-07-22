@@ -22,7 +22,7 @@ class PageItem(SaveMixin, QtWidgets.QWidget, RenameableMixin):
 
     _unique_resource_name = "Item"
 
-    def __init__(self, id: str, pos: QtCore.QRect, *content_args, img="", height_from_width=False):
+    def __init__(self, id: str, pos: QtCore.QRect, *content_args, img="", height_from_width=False, **extra_args):
         super().__init__()
         # satisfy RenameableMixin abstract property
         self.id = id
@@ -33,7 +33,7 @@ class PageItem(SaveMixin, QtWidgets.QWidget, RenameableMixin):
         self._header.setAlignment(QtCore.Qt.AlignCenter)
         # if img was provided, don't set the content as text, but as a label
         if img != "":
-            self._contents = PageImageItem(self, img, pos.width(), *content_args)
+            self._contents = PageImageItem(self, img, pos.width(), *content_args, **extra_args)
             if height_from_width:
                 # Make the widget big enough to contain the image
                 pos.setHeight(self._contents.height + self._non_content_height())
@@ -149,11 +149,18 @@ class PageItem(SaveMixin, QtWidgets.QWidget, RenameableMixin):
             rename_option = QtWidgets.QAction("Rename", dialog)
             rename_option.triggered.connect(self._rename_dialog)
             cancel_option = QtWidgets.QAction("Cancel", dialog)
-            dialog.addAction(close_option)
+            # Image specific options
+            if self._type == "image":
+                edit_image_action = QtWidgets.QAction("Edit Image", dialog)
             dialog.addAction(raise_option)
             dialog.addAction(lower_option)
             dialog.addAction(rename_option)
             dialog.addSeparator()
+            dialog.addAction(close_option)
+            dialog.addSeparator()
+            if self._type == "image":
+                dialog.addAction(edit_image_action)
+                dialog.addSeparator()
             dialog.addAction(cancel_option)
             dialog.triggered.connect(lambda _: dialog.deleteLater())
             pos = self.mapToGlobal(ev.pos())
@@ -180,7 +187,8 @@ class PageItem(SaveMixin, QtWidgets.QWidget, RenameableMixin):
         pos.setWidth(geo[2])
         pos.setHeight(geo[3])
         if data['contents']['type'] == "image":
-            item = cls(id, pos, data['contents']['asset_name'], img=data['contents']['url'])
+            item = cls(id, pos, data['contents']['asset_name'], img=data['contents']['url'],
+                       **data['contents'].get('extra', {}))
             item._contents.asset_name = data['contents']['asset_name']
         else:
             item = cls(id, pos)
@@ -212,6 +220,7 @@ class PageItem(SaveMixin, QtWidgets.QWidget, RenameableMixin):
             url = QtCore.QUrl.fromLocalFile(self._contents.asset_file)
             contents["url"] = url.url()
             contents["asset_name"] = self._contents.asset_name
+            contents["extra"] = self._contents.extra
         return {
             "geometry": geometry,
             "contents": contents,

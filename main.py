@@ -141,8 +141,7 @@ class ContentWidget(QWidget):
         search_paths = QIcon.themeSearchPaths()
         search_paths.append(icon_dir)
         QIcon.setThemeSearchPaths(search_paths)
-        if QIcon.themeName() == "":
-            QIcon.setThemeName(settings.fallback_theme_name)
+        QIcon.setFallbackThemeName(settings.fallback_theme_name)
         self._show_layout()
 
 
