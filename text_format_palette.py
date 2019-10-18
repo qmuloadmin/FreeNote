@@ -71,10 +71,10 @@ class TextFormatPalette(QToolBar):
 
         self.current_fg_color = QColor.fromRgb(0x000000)
         self.current_bg_color = QColor.fromRgb(0xffffff)
-        self.foregnd_button = FontColorButton(QIcon.fromTheme("format-text-color"))
+        self.foregnd_button = FontColorButton(QIcon.fromTheme("format-text-color"), "set text color")
         self.foregnd_button.set_color_display(self.current_fg_color)
         self.addWidget(self.foregnd_button)
-        self.backgnd_button = FontColorButton(QIcon.fromTheme("color-fill"))
+        self.backgnd_button = FontColorButton(QIcon.fromTheme("color-fill"), "set text highlight color")
         self.backgnd_button.set_color_display(self.current_bg_color)
         self.foregnd_select_button = QPushButton(QIcon.fromTheme("color-management"), "")
         self.foregnd_select_button.setToolTip("Select a new text foreground color")
@@ -198,12 +198,20 @@ class FontSizeValidator(QValidator):
 class FontColorButton(QPushButton):
     """ Displays the currently selected color and provides an icon for indicating what is being colored """
 
-    def __init__(self, icon: QIcon):
+    def __init__(self, icon: QIcon, s: str):
         super().__init__()
         self._lo = QHBoxLayout()
-        filler = QLabel("")
-        filler.setPixmap(icon.pixmap(QSize(24, 24)))
-        self._lo.addWidget(filler)
+        self._filler = QToolBar()
+        self._filler.addAction(icon, s)
+        self._filler.setMaximumHeight(25)
+        self._filler.setMaximumWidth(25)
+        self._filler.setStyleSheet("""
+            QWidget {
+                border: 0px
+            }
+        """)
+        self._filler.actionTriggered.connect(lambda _: self.pressed.emit())
+        self._lo.addWidget(self._filler)
         self._lo.setSpacing(0)
         self.setMaximumWidth(40)
         self._color_display = QLabel("")
