@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "freenote"
+version = "0.1.0"
+description = "A fully free, flexible and powerful note taking software alternative"
+authors = ["Zach Bullough <zach@ordermygear.com>"]
+license = "GPL-3.0-or-later"
+
+[tool.poetry.dependencies]
+python = "^3.6"
+oyaml = "^0.9"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry>=1.00"]
+build-backend = "poetry.masonry.api"
