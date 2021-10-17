@@ -1,8 +1,8 @@
 """ MixIn for emitting toast messages """
 
-from PySide2.QtCore import Signal
+from PySide6.QtCore import Signal
 from utilities.debounce import Debouncer
-from PySide2 import QtWidgets
+from PySide6 import QtWidgets
 from style_consants import *
 
 

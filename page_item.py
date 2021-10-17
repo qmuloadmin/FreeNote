@@ -1,5 +1,5 @@
 from style_consants import *
-from PySide2 import QtWidgets, QtGui, QtCore
+from PySide6 import QtWidgets, QtGui, QtCore
 from utilities.save_mixin import SaveMixin
 from utilities.debounce import Debouncer
 from text_format_palette import G_FORMAT_SIGNALLER
@@ -27,7 +27,7 @@ class PageItem(SaveMixin, QtWidgets.QWidget, RenameableMixin):
         # satisfy RenameableMixin abstract property
         self.id = id
         self._lo = QtWidgets.QVBoxLayout()
-        self._lo.setMargin(0)
+        self._lo.setContentsMargins(0, 0, 0, 0)
         self.z_index = 0
         self._header = PageItemHeader(id)
         self._header.setAlignment(QtCore.Qt.AlignCenter)
@@ -484,7 +484,7 @@ class PageCodeEditItem(PageTextContent):
         # set tab stop to be no stupidly huge like the default. Unfortunately, this is global for the TextEdit
         # so there might be merit (including in some special bg/color formatting) to making code a discrete TextEdit
         tab_stop = settings.tabstop
-        self.setTabStopWidth(tab_stop * QtGui.QFontMetrics(font).width(" "))
+        self.setTabStopDistance(tab_stop * QtGui.QFontMetrics(font).horizontalAdvance(" "))
 
     def set_format(self, fmt: QtGui.QTextCharFormat):
         cur = self.textCursor()
@@ -492,7 +492,7 @@ class PageCodeEditItem(PageTextContent):
         self.setCurrentCharFormat(fmt)
         self.setTextCursor(cur)
         tab_stop = settings.tabstop
-        self.setTabStopWidth(tab_stop * QtGui.QFontMetrics(fmt.font()).width(" "))
+        self.setTabStopWidth(tab_stop * QtGui.QFontMetrics(fmt.font()).horizontalAdvance(" "))
 
     @classmethod
     def _connect_format_signals(cls):

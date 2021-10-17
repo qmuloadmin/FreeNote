@@ -1,4 +1,4 @@
-from PySide2 import QtWidgets
+from PySide6 import QtWidgets
 from abc import abstractmethod
 from utilities.save_mixin import g_save_debouncer
 

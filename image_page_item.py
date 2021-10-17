@@ -1,4 +1,4 @@
-from PySide2 import QtWidgets, QtGui, QtCore
+from PySide6 import QtWidgets, QtGui, QtCore
 from utilities.save_mixin import SaveMixin
 from os import chdir, getcwd, remove
 from urllib.request import urlopen

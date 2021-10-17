@@ -1,4 +1,4 @@
-from PySide2.QtWidgets import QTabWidget, QWidget
+from PySide6.QtWidgets import QTabWidget, QWidget
 from section import Section
 from oyaml import load, dump
 from utilities.toaster import ToasterMixin

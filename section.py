@@ -1,4 +1,4 @@
-from PySide2 import QtWidgets, QtGui
+from PySide6 import QtWidgets, QtGui
 from utilities.save_mixin import SaveMixin
 from utilities.rename_dialog import RenameableMixin
 from page import Page

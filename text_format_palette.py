@@ -1,8 +1,8 @@
 """ Widgets for displaying interfaces into formatting text: Bold, size and color """
 
-from PySide2.QtWidgets import QPushButton, QToolBar, QLabel, QLineEdit, QColorDialog, QAction, QComboBox, QWidget, QHBoxLayout
-from PySide2.QtGui import QIcon, QKeySequence, QColor, QFontDatabase, QFont, QValidator
-from PySide2.QtCore import Signal, QObject, Qt, QSize
+from PySide6.QtWidgets import QPushButton, QToolBar, QLabel, QLineEdit, QColorDialog, QComboBox, QWidget, QHBoxLayout
+from PySide6.QtGui import QIcon, QKeySequence, QColor, QFontDatabase, QFont, QValidator, QAction
+from PySide6.QtCore import Signal, QObject, Qt, QSize
 
 
 class FormatSignaller(QObject):
@@ -118,7 +118,7 @@ class TextFormatPalette(QToolBar):
         self.backgnd_select_button.pressed.connect(self._select_bg_color)
         G_FORMAT_SIGNALLER.active_font_changed.connect(self._feedback_font_size)
         self.size_input.returnPressed.connect(self._update_font_size)
-        self.family_menu.activated[str].connect(lambda x: G_FORMAT_SIGNALLER.family_formatted.emit(x))
+        self.family_menu.currentTextChanged[str].connect(lambda x: G_FORMAT_SIGNALLER.family_formatted.emit(x))
 
     def _dispatch_event(self, action: QAction):
         action = action.text()
@@ -218,7 +218,7 @@ class FontColorButton(QPushButton):
         self._color_display.setMinimumWidth(8)
         self._lo.addWidget(self._color_display)
         self.setLayout(self._lo)
-        self._lo.setMargin(3)
+        self._lo.setContentsMargins(3, 3, 3, 3)
 
     def set_color_display(self, color: QColor):
         self._color_display.setStyleSheet("border-radius: 2px; background-color: {};".format(color.name()))

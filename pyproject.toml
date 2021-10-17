@@ -6,8 +6,9 @@ authors = ["Zach Bullough <zach@ordermygear.com>"]
 license = "GPL-3.0-or-later"
 
 [tool.poetry.dependencies]
-python = "^3.6"
+python = ">=3.6,<3.11"
 oyaml = "^0.9"
+pyside6 = "^6.1"
 
 [tool.poetry.dev-dependencies]
 

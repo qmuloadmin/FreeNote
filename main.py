@@ -1,9 +1,9 @@
 #! /usr/bin/env python3
 
 import sys
-from PySide2.QtWidgets import QWidget, QMessageBox, QApplication, QFileDialog, QVBoxLayout, QMainWindow, QMenu, QAction
-from PySide2.QtWidgets import QInputDialog, QLineEdit
-from PySide2.QtGui import QIcon, QCloseEvent
+from PySide6.QtWidgets import QWidget, QMessageBox, QApplication, QFileDialog, QVBoxLayout, QMainWindow, QMenu
+from PySide6.QtWidgets import QInputDialog, QLineEdit
+from PySide6.QtGui import QIcon, QCloseEvent, QAction
 from binder import Binder
 from text_format_palette import TextFormatPalette
 from settings.dialog import SettingsDialog

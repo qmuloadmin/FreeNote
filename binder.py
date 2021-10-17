@@ -1,4 +1,4 @@
-from PySide2.QtWidgets import QTabWidget
+from PySide6.QtWidgets import QTabWidget
 from settings.__init__ import G_QSETTINGS, settings
 from utilities.rename_dialog import RenameableMixin
 from notebook import Notebook

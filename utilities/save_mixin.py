@@ -1,7 +1,7 @@
 """ this mixin keeps track of when anything at all is changed and triggers the global save debouncer """
 
 from utilities.debounce import g_save_debouncer
-from PySide2 import QtCore
+from PySide6 import QtCore
 
 
 class SaveMixin:

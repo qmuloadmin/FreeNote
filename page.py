@@ -1,4 +1,4 @@
-from PySide2 import QtWidgets, QtGui, QtCore
+from PySide6 import QtWidgets, QtGui, QtCore
 from utilities.debounce import Debouncer
 from page_item import PageItem
 from threading import Timer
