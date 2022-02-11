@@ -1,4 +1,4 @@
-from PySide2.QtCore import QSettings
+from PySide6.QtCore import QSettings
 from typing import Callable, Any
 from .password import Password
 import subprocess

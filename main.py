@@ -83,7 +83,7 @@ class MainWindow(QMainWindow):
                 raise ValueError("no valid FreeNote workspace found")
             else:
                 form = QFileDialog(self, "Select a FreeNote Workspace directory")
-                form.setFileMode(form.DirectoryOnly)
+                form.setFileMode(form.Directory)
                 form.setDirectory(".")
                 form.fileSelected.connect(self._set_workspace_from_dialog)
                 form.open()
